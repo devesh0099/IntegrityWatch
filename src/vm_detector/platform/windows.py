@@ -49,11 +49,12 @@ def enumerate_firmware_tables(provider: str) -> list:
         from ctypes import wintypes
         import struct
 
-        # Nested Helper function for cleaner imports
-        def string_to_dword(s: str) -> int:
-            if len(s) != 4:
-                raise ValueError("String must be exactly 4 characters.")
-            return struct.unpack('>I', s.encode('ascii'))[0]
+        # Converting provider string into DWORD in big endian
+        provider_bytes = provider.encode('ascii')
+        if len(provider_bytes) != 4:
+            return []
+        provider_sig = struct.unpack('>I', provider_bytes)[0]
+        
 
         # Loading Kernel32 DLL for 'EnumSystemFirmwareTables' a Windows API Function
         kernel32 = ctypes.windll.kernel32
@@ -67,8 +68,6 @@ def enumerate_firmware_tables(provider: str) -> list:
         ]
         enum_func.restype = wintypes.UINT # Define the API Function return type
 
-        provider_sig = string_to_dword(provider)
-        
         #* STANDARD TWO CALL PATTERN for Windows API function.
 
         # Call 1: To get the required buffer size for the buffer.
@@ -100,5 +99,52 @@ def enumerate_firmware_tables(provider: str) -> list:
     except Exception:
         return []
 
+def fetch_firmware_table(provider: str, table_id: int) -> bytes:
+    # Fetches RAW binary data for a specific firmware table.
+    try:
+        import ctypes
+        from ctypes import wintypes
+        import struct
+
+        # Converting provider to DWORD (big-endian)
+        provider_bytes = provider.encode('ascii')
+        if len(provider_bytes) != 4:
+            return b''
+        provider_sig = struct.unpack('>I', provider_bytes)[0]
+
+        # Loading kernel32 DLL's
+        kernel32 = ctypes.windll.kernel32
+        get_table_func = kernel32.GetSystemFirmwareTable
+
+        #Defining API function signature
+        get_table_func.argtypes = [
+            wintypes.DWORD, # Provider Signature
+            wintypes.DWORD, # Table ID
+            ctypes.c_void_p, # Pointer to Buffer
+            wintypes.DWORD # Buffer Size to be reserved
+        ]
+        get_table_func.restype = wintypes.UINT #Return type for function signature
+
+        #Call 1: Get table size
+        size_needed = get_table_func(provider_sig, table_id, None, 0)
+        if size_needed == 0:
+            return b""
+        
+        # Safety check: 8MB max table
+        MAX_TABLE_SIZE = 8 * 1024 * 1024
+        if size_needed > MAX_TABLE_SIZE:
+            return b''
+        
+        buffer = ctypes.create_string_buffer(size_needed)
+
+        # Call 2: Fetching the Actual table into the buffer
+        bytes_returned = get_table_func(provider_sig, table_id, buffer, size_needed)
+
+        if bytes_returned != size_needed:
+            return b''
+        
+        return buffer.raw
+    except Exception:
+        return b''
 
 
