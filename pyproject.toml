@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "IntegrityWatch"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+description = "IntegrityWatch project"
+authors = [
+  { name = "Devesh Bhushan", email = "deveshbhushan7@gmail.com" }
+]
+
+dependencies = [
+    "wmi",
+    "python-cpuid",
+]

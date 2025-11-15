@@ -192,7 +192,7 @@ class SMBIOSDetector(BaseDetector):
             
             # Skipping if the current file is a directory.
             full_path = os.path.join(acpi_path, filename)
-            if os.path.isdir(full_path):  # ← ADD THIS CHECK
+            if os.path.isdir(full_path):
                 continue
 
             try: #Opening each table in ACPI table path
