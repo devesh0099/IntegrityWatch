@@ -13,7 +13,7 @@ authors = [
 
 dependencies = [
     "wmi",
-    "py-cpuinfo",
+    "cpuid",
 ]
 
 [tool.setuptools.packages.find]
