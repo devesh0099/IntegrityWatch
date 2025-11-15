@@ -1,7 +1,7 @@
 import struct
 from ...base import BaseDetector
 from ....core.result import TechniqueResult
-from ....platform.base import is_windows, is_linux, get_current_platform
+from ....platform.base import is_windows, is_linux, get_current_platform, get_cpuid_vendor
 
 # Constants based on Signatures found in VM's
 VM_SIGNATURES = [
@@ -23,8 +23,17 @@ class SMBIOSDetector(BaseDetector):
             supported_platforms=['windows', 'linux'],
             requires_admin=needs_admin
         )
+
+        self._cpu_vendor = None
     
     def detect(self) -> TechniqueResult:
+        if self._cpu_vendor is None:
+            try:
+                self._cpu_vendor = get_cpuid_vendor(0)
+                self.logger.debug(f"CPU Vendor: {self._cpu_vendor}")
+            except Exception as e:
+                self.logger.warning(f"Could not get CPU vendor: {e}")
+                self._cpu_vendor = "" 
         if is_windows():
             return self._detect_windows()
         elif is_linux():
@@ -135,13 +144,13 @@ class SMBIOSDetector(BaseDetector):
         # Check 3: AMD Manufacturer String Spoofing
         has_short = AMD_SHORT in table_data
         has_full = AMD_FULL in table_data
-        if has_short and not has_full:
+        cpu_vendor = self._cpu_vendor
+        
+        if (has_short and not has_full) or ((cpu_vendor != "AuthenticAMD" and cpu_vendor != "") and (has_short or has_full)):
             return {
                 'detected': True, 
                 'details': "Spoofed AMD manufacturer string detected (short form without Inc.)"
-            }
-
-        #TODO:: Implement has_full but not a cpu of AMD check.
+            }        
 
         # Check 4: FADT-Table Specific Checks
         if signature == b'FACP':
