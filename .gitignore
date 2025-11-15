@@ -2,3 +2,4 @@
 .venv
 test
 __pycache__
+src/IntegrityWatch.egg-info/
