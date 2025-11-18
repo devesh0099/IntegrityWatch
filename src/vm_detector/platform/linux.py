@@ -1,6 +1,6 @@
 def read_proc_cpuinfo() -> str:
     try:
-        with open('proc/cpuinfo', 'r') as f:
+        with open('/proc/cpuinfo', 'r') as f:
             return f.read()
     except:
         return ""
@@ -43,3 +43,27 @@ def get_network_macs() -> list[dict]:
     except:
         pass
     return macs
+
+def get_acpi_tables() -> list:
+    try:
+        import os
+        acpi_path = '/sys/firmware/acpi/tables/'
+
+        file_tables = []
+
+        if not os.path.exists(acpi_path):
+            return ""
+        
+        for filename in os.listdir(acpi_path):
+            if filename in ['.', '..', 'dynamic','data']:
+                continue
+            
+            # Skipping if the current file is a directory.
+            full_path = os.path.join(acpi_path, filename)
+            if os.path.isdir(full_path):
+                continue
+
+            file_tables.append(os.path.join(acpi_path, filename))
+        return file_tables
+    except:
+        return ""

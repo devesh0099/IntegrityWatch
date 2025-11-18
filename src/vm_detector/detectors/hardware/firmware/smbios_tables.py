@@ -183,45 +183,44 @@ class SMBIOSDetector(BaseDetector):
         return {'detected': False}
     
     def _detect_linux(self) -> TechniqueResult:
-        # Linux implementaion for Branc Verification
-        import os
+        try:
+            from ....platform import linux
+            table_files = linux.get_acpi_tables()
 
-        acpi_path = '/sys/firmware/acpi/tables/'
-        if not os.path.exists(acpi_path):
+            if not table_files:
+                return TechniqueResult(
+                    name=self.name,
+                    detected=False,
+                    details="ACPI path not found.",
+                    error="ACPI Table Files not found."
+                )
+            for filename in table_files:
+                try: #Opening each table in ACPI table path
+                    with open(filename, 'rb') as f:
+                        table_data = f.read()
+                        result = self._scan_table(table_data, is_acpi=True)
+                        if result['detected']:
+                            return TechniqueResult(
+                                name=self.name,
+                                detected=True,
+                                details=f"VM artifact in {filename}: {result['details']}"
+                            )
+                except Exception as e:
+                    self.logger.warning(f"Could not read or scan {filename}: {e}")
+
             return TechniqueResult(
                 name=self.name,
                 detected=False,
-                details="ACPI path not found",
-                error="Path not found"
+                details="No VM artifacts found in Linux ACPI tables"
             )
-        
-        for filename in os.listdir(acpi_path):
-            if filename in ['.', '..', 'dynamic','data']:
-                continue
-            
-            # Skipping if the current file is a directory.
-            full_path = os.path.join(acpi_path, filename)
-            if os.path.isdir(full_path):
-                continue
+        except Exception as e:
+            self.logger.error(f"ACPI table scan failed: {e}.")
+            return TechniqueResult(
+                name=self.name,
+                detected=False,
+                error="Unable to do ACPI table scan {e}"
+            )
 
-            try: #Opening each table in ACPI table path
-                with open(os.path.join(acpi_path, filename), 'rb') as f:
-                    table_data = f.read()
-                    result = self._scan_table(table_data, is_acpi=True)
-                    if result['detected']:
-                        return TechniqueResult(
-                            name=self.name,
-                            detected=True,
-                            details=f"VM artifact in {filename}: {result['details']}"
-                        )
-            except Exception as e:
-                self.logger.warning(f"Could not read or scan {filename}: {e}")
-
-        return TechniqueResult(
-            name=self.name,
-            detected=False,
-            details="No VM artifacts found in Linux ACPI tables"
-        )
 
     def _detect_fallback(self) -> TechniqueResult:
         # Fallback Test of firmware
