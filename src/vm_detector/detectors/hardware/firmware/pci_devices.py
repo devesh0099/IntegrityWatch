@@ -58,7 +58,7 @@ class PCIDetector(BaseDetector):
     def detect(self) -> TechniqueResult:
         if is_windows():
             return self._check_windows()
-        if is_linux():
+        elif is_linux():
             return self._check_linux()
         else: # Redundant but still good for checking
             return TechniqueResult(
@@ -100,13 +100,28 @@ class PCIDetector(BaseDetector):
             return TechniqueResult(
                 name=self.name,
                 detected=False,
-                error=f"Unable to enumerate PCI Devices for the given device"
+                error="Unable to enumerate PCI devices on this system."
             )
-        self.logger.debug("Checking PCI drivers....")
+        
+        self.logger.debug(f"Found {len(devices)} PCI devices, chekcing signatures...")
         result = self._check_devices(devices)
     
         return result
 
 
-    def _check_windows():
-        pass
+    def _check_windows(self) -> TechniqueResult:
+        from ....platform.windows import get_pci_device_ids
+
+        self.logger.debug("Enumerating PCI devices on Windows...")
+        devices = get_pci_device_ids()
+
+        if not devices:
+            return TechniqueResult(
+                name=self.name,
+                detected=False,
+                error="Unable to enumerate PCI devices on Windows."
+            )
+        
+        self.logger.debug(f"Found {len(devices)} PCI devices, chekcing signatures...")
+        result = self._check_devices(devices)
+        return result

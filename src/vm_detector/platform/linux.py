@@ -91,5 +91,5 @@ def get_pci_device_ids() -> list[tuple[int, int]]:
                 continue
 
         return devices
-    except:
+    except (IOError, OSError, PermissionError) as e:
         return []

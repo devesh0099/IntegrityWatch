@@ -147,4 +147,67 @@ def fetch_firmware_table(provider: str, table_id: int) -> bytes:
     except Exception:
         return b''
 
+def get_pci_device_ids() -> list[tuple[int, int]]:
+    try:
+        import winreg
+        devices = []
 
+        pci_root = r"SYSTEM\CurrentControlSet\Enum\PCI"
+
+        try:
+            root_key = winreg.OpenKey(
+                winreg.HKEY_LOCAL_MACHINE,
+                pci_root,
+                0,
+                winreg.KEY_READ
+            )
+        except OSError:
+            return []
+        
+        # Start of enumeration
+
+        device_index = 0
+        while True:
+            try:
+                device_name = winreg.EnumKey(root_key, device_index)
+                device_index += 1
+
+                vendor_id, device_id = _parse_device_name(device_name)
+                if vendor_id is not None and device_id is not None:
+                    devices.append((vendor_id, device_id))
+            
+            except OSError:
+                break
+        
+        winreg.CloseKey(root_key)
+        return devices
+
+    except Exception:
+        return []
+    
+def _parse_device_name(device_name: str) -> tuple:
+    vendor_id = None
+    device_id = None
+
+    ven_pos = device_name.find('VEN_')
+    if ven_pos != -1:
+        try:
+            vendor_str = device_name[ven_pos + 4:ven_pos + 8]
+            vendor_id = int(vendor_str, 16)
+        except (ValueError, IndexError):
+            pass
+
+    dev_pos = device_name.find('DEV_')
+    if dev_pos != -1:
+        try:
+            dev_start = dev_pos + 4
+            dev_end = device_name.find('&', dev_start)
+            if dev_end == -1:
+                dev_end = len(device_name)
+
+            device_str = device_name[dev_start:dev_end]
+            device_id = int(device_str, 16)
+        except (ValueError, IndexError):
+            pass
+    
+    return vendor_id, device_id
