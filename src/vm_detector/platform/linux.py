@@ -52,7 +52,7 @@ def get_acpi_tables() -> list:
         file_tables = []
 
         if not os.path.exists(acpi_path):
-            return ""
+            return []
         
         for filename in os.listdir(acpi_path):
             if filename in ['.', '..', 'dynamic','data']:
@@ -66,4 +66,30 @@ def get_acpi_tables() -> list:
             file_tables.append(os.path.join(acpi_path, filename))
         return file_tables
     except:
-        return ""
+        return []
+    
+def get_pci_device_ids() -> list[tuple[int, int]]:
+    try:
+        import os
+        base_path = '/sys/bus/pci/devices/'
+        devices = []
+
+        for device_entry in os.listdir(base_path):
+            vendor_file = os.path.join(base_path,device_entry,"vendor")
+            device_file = os.path.join(base_path,device_entry,"device")
+
+            try:
+                with open(vendor_file, 'r') as vf:
+                    vendor_id = int(vf.read().strip(), 16)
+                
+                with open(device_file, 'r') as df:
+                    device_id = int(df.read().strip(), 16)
+                
+                devices.append((vendor_id, device_id))
+
+            except: # unable to open pci device files
+                continue
+
+        return devices
+    except:
+        return []
