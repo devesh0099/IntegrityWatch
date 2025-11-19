@@ -211,3 +211,52 @@ def _parse_device_name(device_name: str) -> tuple:
             pass
     
     return vendor_id, device_id
+
+def check_kernel_object(object_path: str) -> bool:
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        GENERIC_READ = 0x80000000
+        FILE_SHARE_READ = 0X00000001
+        OPEN_EXISTING = 3
+        INVALID_HANDLE_VALUE = ctypes.c_void_p(-1).value
+
+        kernel32 = ctypes.WinDLL('kernel32', use_last_error=True)
+
+        # Function 1
+        CreateFileW = kernel32.CreateFileW
+        CreateFileW.argtypes = [
+            wintypes.LPCWSTR,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.LPVOID,
+            wintypes.DWORD,
+            wintypes.DWORD,
+            wintypes.HANDLE
+        ]
+        CreateFileW.restype = wintypes.HANDLE
+
+        # Function 2
+        CloseHandle = kernel32.CloseHandle
+        CloseHandle.argtypes = [wintypes.HANDLE]
+        CloseHandle.restype = wintypes.BOOL
+
+        handle = CreateFileW(
+            object_path,
+            GENERIC_READ,
+            FILE_SHARE_READ,
+            None,
+            OPEN_EXISTING,
+            0,
+            None
+        )
+
+        if handle != INVALID_HANDLE_VALUE and handle != 0:
+            CloseHandle(handle)
+            return True
+        
+        return False
+    
+    except Exception as e:
+        return False
