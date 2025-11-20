@@ -10,7 +10,7 @@ class VirtualRegistryDetector(BaseDetector):
         )
 
     def detect(self) -> TechniqueResult:
-        self.logger.debug("Checking for registry virtualization...")
+        self.logger.info("Checking for registry virtualization...")
 
         try:
             from ...platform.windows import get_registry_object_path

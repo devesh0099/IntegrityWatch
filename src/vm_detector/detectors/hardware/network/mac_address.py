@@ -86,7 +86,7 @@ class MACAddressDetector(BaseDetector):
                 error="Could not enumerate MAC addresses"
             )
 
-        self.logger.info(f"Found {len(mac_addresses)} network interfaces")
+        self.logger.debug(f"Found {len(mac_addresses)} network interfaces")
         
         for mac in mac_addresses:
             self.logger.debug(f"Checking MAC: {mac}")

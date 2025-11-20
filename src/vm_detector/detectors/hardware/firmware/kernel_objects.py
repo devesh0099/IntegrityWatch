@@ -28,7 +28,7 @@ class KernelObjectDetector(BaseDetector):
         )
 
     def detect(self) -> TechniqueResult:
-        self.logger.debug("Checking VM device objects....")
+        self.logger.info("Checking Kernel Driver Objects...")
 
         try:
             from ....platform.windows import check_kernel_object

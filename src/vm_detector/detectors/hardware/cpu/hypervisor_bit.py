@@ -12,6 +12,7 @@ class HypervisorBitDetector(BaseDetector):
         )
 
     def detect(self) ->TechniqueResult:
+        self.logger.info("Checking CPU Hypervisor Present bit...")
         try:
             from ....platform import base
         except ImportError:
@@ -24,6 +25,7 @@ class HypervisorBitDetector(BaseDetector):
         features = base.get_cpuid_features()
 
         if not features:
+            self.logger.error("Failed to read CPUID features")
             return TechniqueResult(
                 name=self.name,
                 detected=False,
@@ -31,16 +33,19 @@ class HypervisorBitDetector(BaseDetector):
             )
         
         ecx = features.get('ecx', 0)
-
         hypervisor_bit = (ecx >> 31) & 1
 
+        self.logger.debug(f"CPUID leaf 1 ECX: 0x{ecx:08X}, Bit 31: {hypervisor_bit}")
+
         if hypervisor_bit == 1:
+            self.logger.info("Hypervisor bit set.")
             return TechniqueResult(
                 name=self.name,
                 detected=True,
                 details=f"Hypervisor present bit is SET (CPUID leaf 1, ECX bit 31 = 1)"
             )
         else:
+            self.logger.info("Hypervisor bit clear.")
             return TechniqueResult(
                 name=self.name,
                 detected=False,

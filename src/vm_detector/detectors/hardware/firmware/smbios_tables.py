@@ -50,7 +50,7 @@ class SMBIOSDetector(BaseDetector):
             from ....platform import windows
 
             # ------------Started Scanning for ACPI Tables--------
-            self.logger.info("Scanning ACPI tables.....")
+            self.logger.info("Scanning ACPI tables (Windows).....")
             acpi_ids = windows.enumerate_firmware_tables('ACPI')
             if not acpi_ids:
                 self.logger.warning("Could not enumerate ACPI tables. Falling back to WMI.")
@@ -183,6 +183,7 @@ class SMBIOSDetector(BaseDetector):
         return {'detected': False}
     
     def _detect_linux(self) -> TechniqueResult:
+        self.logger.info("Enumerating ACPI tables (Linux)...")
         try:
             from ....platform import linux
             table_files = linux.get_acpi_tables()
@@ -195,6 +196,7 @@ class SMBIOSDetector(BaseDetector):
                     error="ACPI Table Files not found."
                 )
             for filename in table_files:
+                self.logger.debug(f"Scanning table file: {filename}")
                 try: #Opening each table in ACPI table path
                     with open(filename, 'rb') as f:
                         table_data = f.read()

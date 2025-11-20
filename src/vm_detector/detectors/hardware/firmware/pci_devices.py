@@ -71,6 +71,7 @@ class PCIDetector(BaseDetector):
         for device in devices:
             vendor_id, device_id = device
             if device in VM_PCI_SIGNATURES:
+                self.logger.info(f"PCI Match Found: {device} for {VM_PCI_SIGNATURES[device]}") 
                 return TechniqueResult(
                     name=self.name,
                     detected=True,
@@ -78,6 +79,8 @@ class PCIDetector(BaseDetector):
                 )
             
             if vendor_id in VM_VENDOR_IDS:
+                self.logger.info(f"PCI Vendor Match: {vendor_id} for {VM_VENDOR_IDS[vendor_id]}") 
+
                 return TechniqueResult(
                     name=self.name,
                     detected=True,
@@ -94,7 +97,7 @@ class PCIDetector(BaseDetector):
     def _check_linux(self) -> TechniqueResult:
         from ....platform.linux import get_pci_device_ids
       
-        self.logger.debug("Enumerating PCI Device Drivers....")
+        self.logger.info("Enumerating PCI Device Drivers in Linux....")
         devices = get_pci_device_ids()
         if not devices:
             return TechniqueResult(
@@ -112,7 +115,7 @@ class PCIDetector(BaseDetector):
     def _check_windows(self) -> TechniqueResult:
         from ....platform.windows import get_pci_device_ids
 
-        self.logger.debug("Enumerating PCI devices on Windows...")
+        self.logger.info("Enumerating PCI devices on Windows...")
         devices = get_pci_device_ids()
 
         if not devices:
