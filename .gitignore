@@ -3,3 +3,6 @@
 test
 __pycache__
 src/IntegrityWatch.egg-info/
+logs
+results
+config

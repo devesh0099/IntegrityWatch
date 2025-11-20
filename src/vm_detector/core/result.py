@@ -2,7 +2,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 import json
 from datetime import datetime, timezone
-import sys
+from pathlib import Path
+from ...config import config
 
 VERDICT_BLOCK = "BLOCK"
 VERDICT_FLAG = "FLAG"
@@ -55,6 +56,24 @@ class DetectionResult:
 
         return json.dumps(data, indent=2)
     
+    def save(self):
+        if not config.get("output", "save_json"):
+            return
+        
+        file_path = config.get("output", "json_path")
+        output_path = Path(file_path)
+
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+
+            with open(output_path,"w") as f:
+                f.write(self.to_json())
+
+            return str(output_path)
+        except Exception as e:
+            return None
+
+
     def display(self):
         RED = '\033[91m'
         GREEN = '\033[92m'
