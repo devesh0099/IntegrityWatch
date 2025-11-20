@@ -1,16 +1,18 @@
 from dataclasses import dataclass, field
 from typing import Optional
+import json
+from datetime import datetime, timezone
+import sys
 
-STATUS_CLEAN = "CLEAN"
-STATUS_VM_DETECTED = "VM_DETECTED"
-STATUS_EVASION = "EVASION_DETECTED"
-STATUS_SANDBOX = "SANDBOX_BLOCKED"
-
+VERDICT_BLOCK = "BLOCK"
+VERDICT_FLAG = "FLAG"
+VERDICT_CLEAN = "ALLOW"
 
 @dataclass
 class TechniqueResult:
     name: str
     detected: bool
+    tier: str = "UNKNOWN"
     details: str = ""
     error: Optional[str] = None
 
@@ -28,43 +30,70 @@ class TechniqueResult:
 @dataclass
 class DetectionResult:
     techniques: list[TechniqueResult] = field(default_factory=list)
-    status: str = STATUS_CLEAN # CLEAN, VM_DETECTED, EVASION, SANDBOX
-    mix_detected: bool = False
-    true_count: int = 0
-    total_count: int = 0
+    verdict: str = VERDICT_CLEAN
+    reason: str = "System appears clean passes all the test."
 
+    critical_hits: int = 0
+    high_hits: int = 0
+    low_hits: int = 0
 
-    def is_blocked(self) -> bool:
-        return self.status != STATUS_CLEAN
-
-    def get_summary(self) -> str:
-        if self.status == STATUS_CLEAN:
-            return "No VM or sandbox detected."
-        elif self.status == STATUS_SANDBOX:
-            return "Sandbox isolatoin detected."
-        elif self.status == STATUS_EVASION:
-            triggered = [t.name for t in self.techniques if t.detected]
-            bypassed = [t.name for t in self.techniques if not t.detected and not t.error]
-            return (f"Evasion attempt detected ({self.true_count}/{self.total_count} mixed)\n"
-                   f"  Triggered: {', '.join(triggered)}\n"
-                   f"  Bypassed: {', '.join(bypassed)}")
-        else:
-            triggered = [t.name for t in self.techniques if t.detected]
-            return f"VM detected = {', '.join(triggered)}"
-
-
-    def is_mixed(self) -> bool:
-        if(0 < self.true_count and self.true_count < len(self.techniques)):
-            return True
-        return False
-    
-    def to_dict(self) -> dict:
-        return {
-            'status': self.status,
-            'is_blocked': self.is_blocked(),
-            'mix_detected': self.mix_detected,
-            'true_count': self.true_count,
-            'total_count': self.total_count,
-            'summary': self.get_summary(),
-            'techniques': [t.to_dict() for t in self.techniques]
+    def to_json(self) -> str:
+        data = {
+            "verdict": self.verdict,
+            "reason": self.reason,
+            "tier_summary": {
+                "critical_triggers": self.critical_hits,
+                "high_hits": self.high_hits,
+                "low_hits": self.low_hits
+            },
+            "details": [t.to_dict() for t in self.techniques],
+            "meta": {
+                "version":"0.1.0",
+                "timestamp": datetime.now(timezone.utc).isoformat()
+            }
         }
+
+        return json.dumps(data, indent=2)
+    
+    def display(self):
+        RED = '\033[91m'
+        GREEN = '\033[92m'
+        PURPLE = '\033[95m'
+        YELLOW = '\033[93m'
+        CYAN = '\033[96m'
+        BOLD = '\033[1m'
+        RESET = '\033[0m'
+
+        print(f"\n{BOLD}{CYAN}INTEGRITY WATCH v0.1.0{RESET}")
+        print(f"{CYAN}{'='*60}{RESET}")
+        print(f"{BOLD}SCANNING HOST ENVIRONMENT...{RESET}\n")
+
+        # Sort techniques by Tier for display: CRITICAL -> HIGH -> LOW
+        sorted_techs = sorted(self.techniques, key=lambda x: {"CRITICAL": 0, "HIGH": 1, "LOW": 2}.get(x.tier, 99))
+
+        for tech in sorted_techs:
+            if tech.detected:
+                status_color = RED
+                status_text = "DETECTED"
+            else:
+                status_color = GREEN
+                status_text = "PASS"
+
+            tier_color = PURPLE if tech.tier == "CRITICAL" else (YELLOW if tech.tier == "HIGH" else CYAN)
+
+            # Format: [TIER] Name ........... [ STATUS ]
+            line = f"[{tier_color}{tech.tier:8}{RESET}] {tech.name:<30} [{status_color}{status_text:^8}{RESET}]"
+            print(line)
+
+            if tech.detected:
+                print(f"    {YELLOW}↳ {tech.details}{RESET}")
+            if tech.error:
+                print(f"    {RED}↳ ERROR: {tech.error}{RESET}")
+        
+        print(f"\n{CYAN}{'='*60}{RESET}")
+        print(f"{BOLD}ANALYSIS COMPLETED.{RESET}")
+        
+        verdict_color = RED if self.verdict == VERDICT_BLOCK else (YELLOW if self.verdict == VERDICT_FLAG else GREEN)
+        print(f">> VERDICT:  {verdict_color}{BOLD}{self.verdict}{RESET}")
+        print(f">> REASON:   {self.reason}")
+        print(f"{CYAN}{'='*60}{RESET}\n")
