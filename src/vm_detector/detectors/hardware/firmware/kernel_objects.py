@@ -1,6 +1,5 @@
 from ...base import BaseDetector
 from ....core.result import TechniqueResult
-from ....platform.base import is_windows
 
 VM_KERNEL_OBJECTS = {
     # Hyper-V - Source: VMAware + al-khaser

@@ -260,3 +260,115 @@ def check_kernel_object(object_path: str) -> bool:
     
     except Exception as e:
         return False
+    
+def get_registry_object_path(key_path: str) -> str | None:
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+
+        ntdll = ctypes.WinDLL('ntdll')
+        
+        # Defining structure for low level C functions
+        class UNICODE_STRING(ctypes.Structure):
+            _fields_ = [
+                ('Length', wintypes.USHORT),
+                ('MaximumLength', wintypes.USHORT),
+                ('Buffer', wintypes.LPWSTR)
+            ]
+        
+        
+        class OBJECT_ATTRIBUTES(ctypes.Structure):
+            _fields_ = [
+                ('Length', wintypes.ULONG),
+                ('RootDirectory', wintypes.HANDLE),
+                ('ObjectName', ctypes.POINTER(UNICODE_STRING)),
+                ('Attributes', wintypes.ULONG),
+                ('SecurityDescriptor', wintypes.LPVOID),
+                ('SecurityQualityOfService', wintypes.LPVOID)
+            ]
+        
+        
+        class OBJECT_NAME_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ('Name', UNICODE_STRING)
+            ]
+        
+        # Define Function 1
+        NtOpenKey = ntdll.NtOpenKey
+        NtOpenKey.argtypes = [
+            ctypes.POINTER(wintypes.HANDLE),
+            wintypes.DWORD,
+            ctypes.POINTER(OBJECT_ATTRIBUTES)
+        ]
+        NtOpenKey.restypes = wintypes.LONG
+
+        # Define Function 2
+        NtQueryObject = ntdll.NtQueryObject
+        NtQueryObject.argtypes = [
+            wintypes.HANDLE,
+            wintypes.ULONG,
+            wintypes.LPVOID,
+            wintypes.ULONG,
+            ctypes.POINTER(wintypes.ULONG)
+        ]
+        NtQueryObject.restype = wintypes.LONG
+        # Define Function 3
+        NtClose = ntdll.NtClose
+        NtClose.argtypes = [wintypes.HANDLE]
+        NtClose.restype = wintypes.LONG
+
+        # Preparing registry key path
+        key_path_unicode = UNICODE_STRING()
+        key_path_unicode.Buffer = key_path
+        key_path_unicode.Length = len(key_path) * 2
+        key_path_unicode.MaximumLength = key_path_unicode.Length * 2
+
+        # Preparing object attributes
+        obj_attr = OBJECT_ATTRIBUTES()
+        obj_attr.Length = ctypes.sizeof(OBJECT_ATTRIBUTES)
+        obj_attr.RootDirectory = None
+        obj_attr.ObjectName = ctypes.pointer(key_path_unicode)
+        obj_attr.Attributes = 0x00000040 # OBJ_CASE_INSENSITIVE
+        obj_attr.SecurityDescriptor = None
+        obj_attr.SecurityQualityOfService = None
+
+
+        hKey = wintypes.HANDLE()
+        KEY_READ = 0x20019
+
+        status = NtOpenKey(ctypes.byref(hKey), KEY_READ, ctypes.byref(obj_attr))
+        if status < 0:
+            return None
+        
+        try:
+            buffer = ctypes.create_string_buffer(1024)
+            returned_length = wintypes.ULONG()
+            ObjectNameInformation = 1
+
+            status = NtQueryObject(
+                hKey,
+                ObjectNameInformation,
+                buffer,
+                1024,
+                ctypes.byref(returned_length)
+            )
+
+            if status < 0:
+                return None
+            
+            obj_name_info = ctypes.cast(
+                buffer,
+                ctypes.POINTER(OBJECT_NAME_INFORMATION)
+            ).contents
+
+            name_length = obj_name_info.Name.Length // 2
+            returned_path = obj_name_info.Name.Buffer[:name_length]
+
+            return returned_path
+
+        finally:
+            NtClose(hKey)
+    
+    except Exception:
+        return None
