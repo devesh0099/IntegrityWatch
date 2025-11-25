@@ -1,6 +1,7 @@
 import logging
 import sys
 from pathlib import Path
+from datetime import datetime
 from ..config import config
 
 PROJECT_ROOT_NAME = "integrity_watch" 
@@ -47,6 +48,9 @@ def setup_logging():
             
         except Exception as e:
             print(f"[ERROR] Failed to setup file logging: {e}", file=sys.stderr)
+
+    separator = f"\n{'='*80}\nNEW RUN STARTED AT: {datetime.now().isoformat()}\n{'='*80}\n"
+    file_handler.stream.write(separator)
 
     return root
 
