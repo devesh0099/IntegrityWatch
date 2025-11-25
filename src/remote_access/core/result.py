@@ -2,8 +2,6 @@ from dataclasses import dataclass, field
 from typing import Optional, List
 import json
 from datetime import datetime, timezone
-from pathlib import Path
-from src.config import config  
 
 VERDICT_BLOCK = "BLOCK"
 VERDICT_FLAG = "FLAG"
