@@ -14,7 +14,7 @@ class HypervisorBitDetector(BaseDetector):
     def detect(self) ->TechniqueResult:
         self.logger.info("Checking CPU Hypervisor Present bit...")
         try:
-            from ....platform import base
+            from src.platform import base
         except ImportError:
             return TechniqueResult(
                 name=self.name,

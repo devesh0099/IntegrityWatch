@@ -31,7 +31,7 @@ class KernelObjectDetector(BaseDetector):
         self.logger.info("Checking Kernel Driver Objects...")
 
         try:
-            from ....platform.windows import check_kernel_object
+            from src.platform.windows import check_kernel_object
             
             for device_path, vm_name in VM_KERNEL_OBJECTS.items():
                 if check_kernel_object(device_path):

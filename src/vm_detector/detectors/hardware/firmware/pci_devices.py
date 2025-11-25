@@ -1,6 +1,6 @@
 from ...base import BaseDetector
 from ....core.result import TechniqueResult
-from ....platform.base import is_linux, is_windows
+from src.platform.base import is_linux, is_windows
 
 # VM PCI ID Database 
 VM_PCI_SIGNATURES = {
@@ -95,7 +95,7 @@ class PCIDetector(BaseDetector):
 
 
     def _check_linux(self) -> TechniqueResult:
-        from ....platform.linux import get_pci_device_ids
+        from src.platform.linux import get_pci_device_ids
       
         self.logger.info("Enumerating PCI Device Drivers in Linux....")
         devices = get_pci_device_ids()
@@ -113,7 +113,7 @@ class PCIDetector(BaseDetector):
 
 
     def _check_windows(self) -> TechniqueResult:
-        from ....platform.windows import get_pci_device_ids
+        from src.platform.windows import get_pci_device_ids
 
         self.logger.info("Enumerating PCI devices on Windows...")
         devices = get_pci_device_ids()

@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-import platform
 import os
 
 from ..core.result import TechniqueResult
 from ..core.logger import get_logger
-from ..platform.base import get_current_platform, is_windows
+from src.platform.base import get_current_platform, is_windows
 
 class BaseDetector(ABC):
     """Abstract base class for all VM/sandbox detectors."""
