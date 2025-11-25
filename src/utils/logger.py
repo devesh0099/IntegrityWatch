@@ -1,8 +1,9 @@
 import logging
 import sys
-import os
 from pathlib import Path
-from ...config import config
+from ..config import config
+
+PROJECT_ROOT_NAME = "integrity_watch" 
 
 def setup_logging():
     # Read Configuration from file
@@ -13,7 +14,7 @@ def setup_logging():
     file_path = config.get("logging", "file_path")
     file_lvl_str = config.get("logging", "file_level", "DEBUG")
 
-    root = logging.getLogger('vm_detector')
+    root = logging.getLogger(PROJECT_ROOT_NAME) 
     root.setLevel(logging.DEBUG)
     
     if root.hasHandlers():
@@ -50,4 +51,4 @@ def setup_logging():
     return root
 
 def get_logger(name: str) -> logging.Logger:
-    return logging.getLogger(f'vm_detector.{name}')
+    return logging.getLogger(f'{PROJECT_ROOT_NAME}.{name}')

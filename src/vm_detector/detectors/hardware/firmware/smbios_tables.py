@@ -1,7 +1,7 @@
 import struct
 from ...base import BaseDetector
 from ....core.result import TechniqueResult
-from src.platform.base import is_windows, is_linux, get_current_platform, get_cpuid_vendor
+from src.utils.platform.base import is_windows, is_linux, get_current_platform, get_cpuid_vendor
 
 # Constants based on Signatures found in VM's
 VM_SIGNATURES = [
@@ -47,7 +47,7 @@ class SMBIOSDetector(BaseDetector):
     def _detect_windows(self) -> TechniqueResult:
         # Checks applied to detect windows running in VM.
         try:
-            from src.platform import windows
+            from src.utils.platform import windows
 
             # ------------Started Scanning for ACPI Tables--------
             self.logger.info("Scanning ACPI tables (Windows).....")
@@ -185,7 +185,7 @@ class SMBIOSDetector(BaseDetector):
     def _detect_linux(self) -> TechniqueResult:
         self.logger.info("Enumerating ACPI tables (Linux)...")
         try:
-            from src.platform import linux
+            from src.utils.platform import linux
             table_files = linux.get_acpi_tables()
 
             if not table_files:
@@ -229,10 +229,10 @@ class SMBIOSDetector(BaseDetector):
         # Getting Firmware info for different OSes
         firmware = None
         if(is_windows()):
-            from src.platform import windows
+            from src.utils.platform import windows
             firmware = windows.get_firmware_info()
         elif(is_linux()): 
-            from src.platform import linux
+            from src.utils.platform import linux
             firmware = linux.get_firmware_info()
 
         if 'error' in firmware:

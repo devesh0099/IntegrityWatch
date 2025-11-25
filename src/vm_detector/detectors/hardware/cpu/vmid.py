@@ -33,7 +33,7 @@ class CPUIDVendorDetector(BaseDetector):
     def detect(self) -> TechniqueResult:
         self.logger.info("Scanning CPUID Vendor strings...")
         try:
-            from src.platform import base
+            from src.utils.platform import base
         except ImportError:
             return TechniqueResult(
                 name=self.name,

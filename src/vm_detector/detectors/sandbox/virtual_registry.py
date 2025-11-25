@@ -13,7 +13,7 @@ class VirtualRegistryDetector(BaseDetector):
         self.logger.info("Checking for registry virtualization...")
 
         try:
-            from src.platform.windows import get_registry_object_path
+            from src.utils.platform.windows import get_registry_object_path
 
             expected_path = r'\REGISTRY\USER'
             actual_path = get_registry_object_path(expected_path)

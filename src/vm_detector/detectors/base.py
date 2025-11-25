@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 import os
 
 from ..core.result import TechniqueResult
-from ..core.logger import get_logger
-from src.platform.base import get_current_platform, is_windows
+from ...utils.logger import get_logger
+from src.utils.platform.base import get_current_platform, is_windows
 
 class BaseDetector(ABC):
     """Abstract base class for all VM/sandbox detectors."""
@@ -12,7 +12,7 @@ class BaseDetector(ABC):
         self.name = name
         self.supported_platforms = supported_platforms
         self.requires_admin = requires_admin
-        self.logger = get_logger(f'detector.{name.lower().replace(" ", "_")}')
+        self.logger = get_logger(f'vm_detector.{name.lower().replace(" ", "_")}')
         self._current_platform = get_current_platform()
     
     def is_platform_supported(self) -> bool:

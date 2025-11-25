@@ -1,4 +1,4 @@
-import logging
+from ...utils.logger import get_logger
 
 from .result import DetectionResult, TechniqueResult, VERDICT_BLOCK, VERDICT_CLEAN, VERDICT_FLAG
 from ..detectors.base import BaseDetector
@@ -26,7 +26,7 @@ TIER_MAPPING = {
 
 class DetectionEngine:
     def __init__(self):
-        self.logger = logging.getLogger("vm_detector.engine")
+        self.logger = get_logger("vm_detector.engine")
         self.detectors: list[BaseDetector] = self._load_detectors()
 
         self.TIER_MAPPING = TIER_MAPPING
