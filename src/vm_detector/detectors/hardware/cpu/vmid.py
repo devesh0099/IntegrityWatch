@@ -26,7 +26,7 @@ class CPUIDVendorDetector(BaseDetector):
     def __init__(self):
         super().__init__(
             name="CPUID Vendor String",
-            supported_platforms=['windows','linux','macos'],
+            supported_platforms=[],
             requires_admin=False
         )
 

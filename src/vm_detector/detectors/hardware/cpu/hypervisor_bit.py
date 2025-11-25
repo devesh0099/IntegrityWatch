@@ -7,7 +7,7 @@ class HypervisorBitDetector(BaseDetector):
     def __init__(self):
         super().__init__(
             name="CPUID Hypervisor Bit",
-            supported_platforms=["windows", 'linux', 'macos'],
+            supported_platforms=[],
             requires_admin=False
         )
 
