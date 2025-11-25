@@ -40,6 +40,7 @@ class DetectionResult:
 
     def to_json(self) -> str:
         data = {
+            "module": "vm_detector",
             "verdict": self.verdict,
             "reason": self.reason,
             "tier_summary": {
@@ -55,24 +56,6 @@ class DetectionResult:
         }
 
         return json.dumps(data, indent=2)
-    
-    def save(self):
-        if not config.get("output", "save_json"):
-            return
-        
-        file_path = config.get("output", "json_path")
-        output_path = Path(file_path)
-
-        try:
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(output_path,"w") as f:
-                f.write(self.to_json())
-
-            return str(output_path)
-        except Exception as e:
-            return None
-
 
     def display(self):
         RED = '\033[91m'
@@ -83,11 +66,9 @@ class DetectionResult:
         BOLD = '\033[1m'
         RESET = '\033[0m'
 
-        print(f"\n{BOLD}{CYAN}INTEGRITY WATCH v0.1.0{RESET}")
-        print(f"{CYAN}{'='*60}{RESET}")
-        print(f"{BOLD}SCANNING HOST ENVIRONMENT...{RESET}\n")
+        print(f"\n{BOLD}{CYAN}>>> VM EVASION MODULE{RESET}")
+        print(f"{CYAN}{'-'*60}{RESET}")
 
-        # Sort techniques by Tier for display: CRITICAL -> HIGH -> LOW
         sorted_techs = sorted(self.techniques, key=lambda x: {"CRITICAL": 0, "HIGH": 1, "LOW": 2}.get(x.tier, 99))
 
         for tech in sorted_techs:
@@ -100,19 +81,13 @@ class DetectionResult:
 
             tier_color = PURPLE if tech.tier == "CRITICAL" else (YELLOW if tech.tier == "HIGH" else CYAN)
 
-            # Format: [TIER] Name ........... [ STATUS ]
-            line = f"[{tier_color}{tech.tier:8}{RESET}] {tech.name:<30} [{status_color}{status_text:^8}{RESET}]"
-            print(line)
+            print(f"[{tier_color}{tech.tier:^8}{RESET}] {tech.name:<35} [{status_color}{status_text:^8}{RESET}]")
 
             if tech.detected:
                 print(f"    {YELLOW}↳ {tech.details}{RESET}")
             if tech.error:
                 print(f"    {RED}↳ ERROR: {tech.error}{RESET}")
         
-        print(f"\n{CYAN}{'='*60}{RESET}")
-        print(f"{BOLD}ANALYSIS COMPLETED.{RESET}")
-        
-        verdict_color = RED if self.verdict == VERDICT_BLOCK else (YELLOW if self.verdict == VERDICT_FLAG else GREEN)
-        print(f">> VERDICT:  {verdict_color}{BOLD}{self.verdict}{RESET}")
-        print(f">> REASON:   {self.reason}")
-        print(f"{CYAN}{'='*60}{RESET}\n")
+        verdict_color = RED if self.verdict == "BLOCK" else (YELLOW if self.verdict == "FLAG" else GREEN)
+        print(f"{CYAN}{'-'*60}{RESET}")
+        print(f"VM VERDICT: {verdict_color}{self.verdict}{RESET} | {self.reason}")
