@@ -92,8 +92,10 @@ class DetectionEngine:
     def _monitor_loop(self, interval: int, display_callback, heartbeat_callback): # Function to run on thread
         while not self._stop_event.is_set():
             cycle_result = DetectionResult()
-
-            for detector in (self.detectors and self._successful_detector_names):
+            
+            for detector in self.detectors:
+                if detector.name not in self._successful_detector_names:
+                    continue
                 tech_result = detector.safe_monitor()
                 tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
 

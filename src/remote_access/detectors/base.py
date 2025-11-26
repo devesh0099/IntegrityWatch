@@ -58,7 +58,6 @@ class BaseDetector(ABC):
         try:
             self.logger.info(f"Running detection: {self.name}")
             result = self.scan()
-            self.successful_test.append(self.name)
             if result.detected:
                 self.logger.warning(f"DETECTED: {result.details}")
             else:

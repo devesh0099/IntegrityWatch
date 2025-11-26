@@ -110,7 +110,7 @@ def main():
         vm_result = VMEngine()
         
         logger.info("Running Remote Access Module...")
-        remote_result = RemoteEngine()
+        remote_result, remote_engine = RemoteEngine()
         
         final_verdict = calculate_final_verdict(vm_result, remote_result)
         final_reason = get_final_reason(vm_result, remote_result, final_verdict)
@@ -129,7 +129,11 @@ def main():
         save_report(report)
 
         interval = config.get("monitoring", "monitoring_interval", 5)
-        monitor = start_monitoring(interval=interval,heartbeat_callback=save_heartbeat_to_disk)
+        monitor = start_monitoring(
+            engine=remote_engine,
+            interval=interval,
+            heartbeat_callback=save_heartbeat_to_disk
+            )
 
         input("\n[Monitoring Active] Press ENTER to stop verification...\n")
         print("Stopping...")

@@ -8,10 +8,9 @@ def run_checks(): # Main Entry point for Remote Detection Module
     result = engine.run()
     result.display()
 
-    return result
+    return result, engine
 
-def start_monitoring(heartbeat_callback,interval:int = 5):
-    engine = DetectionEngine()
+def start_monitoring(engine, heartbeat_callback,interval:int = 5):
     engine.start_monitoring(
         interval=interval,
         display_callback=display_callback,
