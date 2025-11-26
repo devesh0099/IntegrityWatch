@@ -1,5 +1,6 @@
 import sys
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from src.utils.logger import setup_logging, get_logger
 
 from src.vm_detector.main import run_checks as VMEngine
 from src.remote_access.main import run_checks as RemoteEngine
+from src.remote_access.main import start_monitoring
 from src.core.report import ScanReport
 
 RED = '\033[91m'
@@ -83,6 +85,22 @@ def save_report(report):
         except Exception as e:
             print(f"Failed to save report: {e}")
 
+def save_heartbeat_to_disk(payload: dict):
+    try:
+        base_dir = config.get("output", "heartbeat") or "results/heartbeat/"
+        os.makedirs(base_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"heartbeat_{timestamp}.json"
+        filepath = os.path.join(base_dir, filename)
+        
+        with open(filepath, "w") as f:
+            json.dump(payload, f, indent=2)
+            
+    except Exception as e:
+        logger.error(f"Failed to write heartbeat file: {e}")
+
+
 def main():
     try:
         print_header()
@@ -109,10 +127,19 @@ def main():
         print_summary(final_verdict, final_reason)
 
         save_report(report)
+
+        interval = config.get("monitoring", "monitoring_interval", 5)
+        monitor = start_monitoring(interval=interval,heartbeat_callback=save_heartbeat_to_disk)
+
+        input("\n[Monitoring Active] Press ENTER to stop verification...\n")
+        print("Stopping...")
+        monitor.stop_monitoring()
+
         
         sys.exit(1 if final_verdict == "BLOCK" else 0)
     except KeyboardInterrupt:
         print(f"\n{YELLOW}Scan interrupted by user.{RESET}")
+        monitor.stop_monitoring()
         sys.exit(130)
     except Exception as e:
         logger.critical(f"Scan execution failed: {e}")

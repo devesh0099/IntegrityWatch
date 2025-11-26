@@ -1,11 +1,14 @@
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import json
 from datetime import datetime, timezone
+
+import sys
 
 VERDICT_BLOCK = "BLOCK"
 VERDICT_FLAG = "FLAG"
 VERDICT_CLEAN = "ALLOW"
+VERDICT_SKIPPED = "SKIPPED"
 
 @dataclass
 class TechniqueResult:
@@ -14,6 +17,7 @@ class TechniqueResult:
     tier: str = "UNKNOWN"  # CRITICAL, HIGH, LOW
     details: str = ""      
     error: Optional[str] = None
+    data: Dict[str, Any] = field(default_factory=dict)
 
     def is_detected(self) -> bool:
         return self.detected
@@ -24,7 +28,8 @@ class TechniqueResult:
             'detected': self.detected,
             'tier': self.tier,
             'details': self.details,
-            'error': self.error
+            'error': self.error,
+            'data': self.data
         }
 
 @dataclass
@@ -89,3 +94,67 @@ class DetectionResult:
         verdict_color = RED if self.verdict == "BLOCK" else (YELLOW if self.verdict == "FLAG" else GREEN)
         print(f"{CYAN}{'-'*60}{RESET}")
         print(f"REMOTE VERDICT: {verdict_color}{self.verdict}{RESET} | {self.reason}")
+    
+    def display_monitor(self):
+        RED = '\033[91m'
+        GREEN = '\033[92m'
+        YELLOW = '\033[93m'
+        BLUE = '\033[94m'
+        BOLD = '\033[1m'
+        RESET = '\033[0m'
+        
+        timestamp = datetime.now().strftime("%H:%M:%S")
+
+        if self.verdict == VERDICT_CLEAN:
+            print(f"\r{BLUE}[{timestamp}]{RESET} Monitor Status: {GREEN}SECURE{RESET} | Scanning active...", end="", flush=True)
+        
+        elif self.verdict == VERDICT_SKIPPED:
+             print(f"\r{BLUE}[{timestamp}]{RESET} Monitor Status: {YELLOW}IDLE{RESET}   | {self.reason}", end="", flush=True)
+        
+        else:
+            print(f"\r{' ' * 80}\r", end="") 
+            
+            if self.verdict == VERDICT_BLOCK:
+                tag_color = RED
+            else: 
+                tag_color = YELLOW
+
+            print(f"{tag_color}{BOLD}{'-'*60}{RESET}")
+            print(f"{tag_color}{BOLD}SECURITY ALERT [{timestamp}]{RESET}")
+            print(f"{tag_color}{BOLD}{'-'*60}{RESET}")
+            print(f"VERDICT: {tag_color}{self.verdict}{RESET}")
+            print(f"REASON : {self.reason}")
+            
+
+            print(f"\n{BOLD}Violations Detected:{RESET}")
+            for tech in self.techniques:
+                if tech.detected:
+                    print(f"  • {tag_color}{tech.name}{RESET}")
+                    print(f"    ↳ {tech.details}")
+            
+            print(f"{tag_color}{'-'*60}{RESET}\n")
+            
+            sys.stdout.flush()
+
+    def to_heartbeat_dict(self) -> dict:
+        violations_list = []
+        for tech in self.techniques:
+            if tech.detected:
+                violations_list.append({
+                    "module": tech.name,
+                    "severity": tech.tier,
+                    "details": tech.details,
+                    "data": tech.data 
+                })
+
+        return {
+            "type": "heartbeat",
+            "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+            "status": self.verdict,
+            "summary": {
+                "total_checks_run": len(self.techniques),
+                "critical_violations": self.critical_hits,
+                "high_violations": self.high_hits
+            },
+            "active_violations": violations_list
+        }

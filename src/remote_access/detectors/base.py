@@ -13,7 +13,7 @@ class BaseDetector(ABC):
         self.requires_admin = requires_admin
         self.logger = get_logger(f"remote.{self.__class__.__name__}")
         self._current_platform = get_current_platform()
-    
+
     def is_platform_supported(self) -> bool:
         if not self.supported_platforms:  # Empty list = all platforms
             return True
@@ -32,6 +32,9 @@ class BaseDetector(ABC):
     @abstractmethod
     def scan(self) -> TechniqueResult:
         pass
+
+    def monitor(self) -> TechniqueResult:
+        return self.scan()
 
     def safe_scan(self) -> TechniqueResult:
         if not self.is_platform_supported():
@@ -53,9 +56,27 @@ class BaseDetector(ABC):
             )
         
         try:
-            
             self.logger.info(f"Running detection: {self.name}")
             result = self.scan()
+            self.successful_test.append(self.name)
+            if result.detected:
+                self.logger.warning(f"DETECTED: {result.details}")
+            else:
+                self.logger.info(f"Clean: {result.details}")
+            return result
+        
+        except Exception as e:
+            self.logger.error(f"Detection failed: {str(e)}", exc_info=True)
+            return TechniqueResult(
+                name=self.name,
+                detected=False,
+                details="Detection check failed",
+                error=str(e)
+            )
+
+    def safe_monitor(self) -> TechniqueResult:
+        try:
+            result = self.monitor()
             if result.detected:
                 self.logger.warning(f"DETECTED: {result.details}")
             else:

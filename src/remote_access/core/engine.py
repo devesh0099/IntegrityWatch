@@ -1,10 +1,16 @@
 from src.utils.logger import get_logger
-from src.remote_access.core.result import DetectionResult, TechniqueResult, VERDICT_BLOCK, VERDICT_FLAG, VERDICT_CLEAN
+from src.remote_access.core.result import DetectionResult, TechniqueResult, VERDICT_BLOCK, VERDICT_FLAG, VERDICT_CLEAN, VERDICT_SKIPPED
 from src.remote_access.detectors.base import BaseDetector
+
 import threading
 import time
+from typing import Callable
 
-TIER_MAPPING = {}
+from ..detectors.rdp_session import RDPSessionDetector
+
+TIER_MAPPING = {
+    "RDP Session Detection": "CRITICAL"
+}
 
 class DetectionEngine:
     def __init__(self):
@@ -16,9 +22,12 @@ class DetectionEngine:
         self._monitoring = False
         self._monitor_thread = None
         self._stop_event = threading.Event()
+        self._successful_detector_names = set()
 
     def _load_detectors(self) -> list[BaseDetector]:
-        return []
+        return [
+            RDPSessionDetector()
+        ]
 
     def run(self) -> DetectionResult:
         self.logger.info("Starting Remote Access Baseline Detection Scan...")
@@ -27,7 +36,10 @@ class DetectionEngine:
         # Running all detectors
         for detector in self.detectors:
             tech_result = detector.safe_scan()
-
+            
+            if tech_result.error == None:
+                self._successful_detector_names.add(tech_result.name)
+            
             tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
 
             if tech_result.detected:
@@ -49,7 +61,11 @@ class DetectionEngine:
         
         return result
 
-    def start_monitoring(self, interval: int = 3, callback: callable[[list[TechniqueResult]], None] = None): # Starts a new thread for background monitoring
+    def start_monitoring(self, 
+                         interval: int = 5, 
+                         display_callback: Callable[[DetectionResult], None] = None,
+                         heartbeat_callback: Callable[[dict], None] = None
+                         ): # Starts a new thread for background monitoring every 5 seconds
         if self._monitoring:
             self.logger.warning("Monitoring already active.")
             return
@@ -59,7 +75,7 @@ class DetectionEngine:
 
         self._monitor_thread = threading.Thread(
             target=self._monitor_loop,
-            args=(interval, callback),
+            args=(interval, display_callback, heartbeat_callback),
             daemon=True
         )
 
@@ -73,12 +89,12 @@ class DetectionEngine:
             self._monitor_thread.join(timeout=2.0)
         self.logger.info("Monitoring stopped.")
 
-    def _monitor_loop(self, interval: int, callback): # Function to run on thread
+    def _monitor_loop(self, interval: int, display_callback, heartbeat_callback): # Function to run on thread
         while not self._stop_event.is_set():
             cycle_result = DetectionResult()
 
-            for detector in self.detectors:
-                tech_result = detector.safe_scan() # Calls the scan here 
+            for detector in (self.detectors and self._successful_detector_names):
+                tech_result = detector.safe_monitor()
                 tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
 
                 if tech_result.detected:
@@ -93,11 +109,14 @@ class DetectionEngine:
 
             self._apply_verdict_logic(cycle_result)
 
+            if heartbeat_callback:
+                payload = cycle_result.to_heartbeat_dict()
+                heartbeat_callback(payload)
             if cycle_result.verdict == VERDICT_BLOCK:
                 self.logger.critical(f"Blocking Violation: {cycle_result.reason}")
 
-                if callback:
-                    callback(cycle_result)
+                if display_callback:
+                    display_callback(cycle_result)
 
                 self.stop_monitoring()
                 break
@@ -113,12 +132,17 @@ class DetectionEngine:
                 if is_new_violation:
                     self.logger.warning(f"Flagged: {cycle_result.reason}")
                     
-                    if callback:
-                        callback(cycle_result)
+            if display_callback:
+                display_callback(cycle_result)
 
             time.sleep(interval)
 
     def _apply_verdict_logic(self, result: DetectionResult):
+        if not result.techniques:
+            result.verdict = "SKIPPED"
+            result.reason = "No detection modules were active."
+            return
+        
         critical = result.critical_hits > 0
         high = result.high_hits > 0
         low = result.low_hits > 0

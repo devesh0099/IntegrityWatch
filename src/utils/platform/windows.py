@@ -372,3 +372,63 @@ def get_registry_object_path(key_path: str) -> str | None:
     
     except Exception:
         return None
+    
+def get_remote_metrics() -> bool:
+    try:
+        import ctypes
+        user32 = ctypes.windll.user32
+        # We need info about Remote Session
+        # SM_REMOTESESSION = 0x1000
+        return bool(user32.GetSystemMetrics(0x1000))
+    except Exception:
+        return False
+    
+def get_session_protocol() -> int:
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        wtsapi32 = ctypes.windll.wtsapi32
+
+        # For Checking Session
+        wtsapi32.WTSQuerySessionInformationW.argtypes = [
+            wintypes.HANDLE,
+            wintypes.DWORD,
+            ctypes.c_int,
+            ctypes.POINTER(ctypes.c_void_p),
+            ctypes.POINTER(ctypes.c_ulong)
+        ]
+        wtsapi32.WTSQuerySessionInformationW.restype = wintypes.BOOL
+
+        # For freeing memory
+        wtsapi32.WTSFreeMemory.argtypes = [ctypes.c_void_p]
+        wtsapi32.WTSFreeMemory.restype = None
+
+        WTS_CURRENT_SERVER_HANDLE = 0
+        WTS_CURRENT_SESSION = -1
+        WTS_CLIENT_PROTOCOL_TYPE = 16  
+
+        buffer_ptr = ctypes.POINTER(ctypes.c_void_p)()
+        bytes_returned = ctypes.c_ulong()
+
+        success = wtsapi32.WTSQuerySessionInformationW(
+            WTS_CURRENT_SERVER_HANDLE,
+            WTS_CURRENT_SESSION,
+            WTS_CLIENT_PROTOCOL_TYPE,
+            ctypes.byref(buffer_ptr),
+            ctypes.byref(bytes_returned)
+        )
+
+        if not success:
+            -1
+
+        try:
+            protocol_type = ctypes.cast(buffer_ptr,ctypes.POINTER(ctypes.c_ushort)).contents.value
+            return protocol_type
+        
+        finally:
+
+            if buffer_ptr:
+                wtsapi32.WTSFreeMemory(buffer_ptr)
+    except Exception:
+        return -1

@@ -13,7 +13,11 @@ DEFAULT_CONFIG = {
     },
     "output": {
         "save_json": True,
-        "json_path": "results/scan_report.json"  
+        "json_path": "results/scan_report.json",
+        "heartbeat": "results/heatbeat/"
+    },
+    "monitoring": {
+        "monitoring_interval": 5
     }
 }
 
