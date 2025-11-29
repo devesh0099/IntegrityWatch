@@ -1,5 +1,5 @@
-from .base import BaseDetector
-from ..core.result import TechniqueResult
+from ..base import BaseDetector
+from ...core.result import TechniqueResult
 
 from src.utils.platform.windows import get_remote_metrics, get_session_protocol
 

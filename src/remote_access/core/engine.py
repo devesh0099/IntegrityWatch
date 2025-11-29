@@ -6,10 +6,12 @@ import threading
 import time
 from typing import Callable
 
-from ..detectors.rdp_session import RDPSessionDetector
+from ..detectors.rdp_session.rdp_session import RDPSessionDetector
+from ..detectors.process_detector.process_detection import ProcessDetector
 
 TIER_MAPPING = {
-    "RDP Session Detection": "CRITICAL"
+    "RDP Session Detection": "CRITICAL",
+    "Process Detection": "CRITICAL"
 }
 
 class DetectionEngine:
@@ -26,7 +28,8 @@ class DetectionEngine:
 
     def _load_detectors(self) -> list[BaseDetector]:
         return [
-            RDPSessionDetector()
+            RDPSessionDetector(),
+            ProcessDetector()
         ]
 
     def run(self) -> DetectionResult:
@@ -114,20 +117,22 @@ class DetectionEngine:
             if heartbeat_callback:
                 payload = cycle_result.to_heartbeat_dict()
                 heartbeat_callback(payload)
+
             if cycle_result.verdict == VERDICT_BLOCK:
                 self.logger.critical(f"Blocking Violation: {cycle_result.reason}")
 
                 if display_callback:
                     display_callback(cycle_result)
 
-                self.stop_monitoring()
+                self._stop_event.set()
+                self._monitoring = False
                 break
 
             elif cycle_result.verdict == VERDICT_FLAG:
                 is_new_violation = False
 
                 for tech in cycle_result.techniques:
-                    if tech.name not in self.current_violations:
+                    if tech.detected and tech.name not in self.current_violations:
                         self.current_violations[tech.name] = tech
                         is_new_violation = True
                 
@@ -137,7 +142,8 @@ class DetectionEngine:
             if display_callback:
                 display_callback(cycle_result)
 
-            time.sleep(interval)
+            self._stop_event.wait(timeout=interval)
+
 
     def _apply_verdict_logic(self, result: DetectionResult):
         if not result.techniques:

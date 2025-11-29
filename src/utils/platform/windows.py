@@ -1,3 +1,5 @@
+from typing import Any
+
 def get_cpu_info() -> dict:
     try:
         import wmi
@@ -432,3 +434,26 @@ def get_session_protocol() -> int:
                 wtsapi32.WTSFreeMemory(buffer_ptr)
     except Exception:
         return -1
+    
+
+def enumerate_processes() -> list[dict[str, Any]]:
+    processes = []
+
+    try:
+        import wmi
+        c = wmi.WMI()
+
+        for proc in c.Win32_Process():
+            try:
+                processes.append({
+                    'name': proc.Name or "Unknown",
+                    'pid': proc.ProcessId or 0,
+                    'path': proc.ExecutablePath or "",
+                    'cmdline': proc.CommandLine or ""
+                })
+            except:
+                continue
+        
+        return processes
+    except Exception:
+        return []

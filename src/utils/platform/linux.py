@@ -1,3 +1,5 @@
+from typing import Any
+
 def read_proc_cpuinfo() -> str:
     try:
         with open('/proc/cpuinfo', 'r') as f:
@@ -92,4 +94,36 @@ def get_pci_device_ids() -> list[tuple[int, int]]:
 
         return devices
     except (IOError, OSError, PermissionError) as e:
+        return []
+    
+def enumerate_processes() -> list[dict[str, Any]]:
+    import os
+    processes = []
+
+    try:
+        for pid in os.listdir('/proc'):
+            if not pid.isdigit():
+                continue
+            try:
+                with open(f'/proc/{pid}/comm', 'r') as f:
+                    name = f.read().strip()
+                
+                path = ''
+                try:
+                    path = os.readlink(f'/proc/{pid}/exe')
+                except:
+                    pass
+
+                processes.append({
+                    'name': name,
+                    'pid': int(pid),
+                    'path': path,
+                    'cmdline': ''
+                })
+            except:
+                continue
+
+        return processes
+    
+    except Exception:
         return []
