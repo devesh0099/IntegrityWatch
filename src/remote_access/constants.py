@@ -1,3 +1,53 @@
+# All suspicious ports
+SUSPICIOUS_PORTS = {
+    3389, # RDP - Microsoft standard
+    5900, # VNC - IETF RFC 6143
+    5901, 5902, 5903, 5904, 5905, # VNC additional displays
+    5938, # TeamViewer - Official docs
+    6568, # AnyDesk - Official docs
+    7070, # AnyDesk direct connection
+    21116, 21117, 21118, 21119, # RustDesk
+    11011, 11012 # Supremo
+}
+
+COMMON_FALLBACK_PORTS ={
+    80, # HTTP
+    443, # HTTPS
+    8080, 8443 # HTTP alternatives
+}
+
+COMMON_LEGITIMATE_PORTS = {
+    20, 21, # FTP
+    22, # SSH
+    25, # SMTP
+    53, # DNS
+    110, # POP3
+    143, # IMAP
+    465, 587, # SMTP SSL
+    993, 995, # IMAP/POP3 SSL
+    3306, # MySQL
+    5432, # PostgreSQL
+}
+    
+
+# Known remote access domains
+KNOWN_REMOTE_ACCESS_DOMAINS = [
+    'teamviewer.com',
+    'anydesk.com',
+    'net.anydesk.com',
+    'realvnc.com',
+    'tightvnc.com',
+    'rustdesk.com',
+]
+
+# Port to tool mapping {Out of all suspicious ports only these ones are 100% certain to a specific tool}
+PORT_TO_TOOL = {
+    3389: 'RDP',
+    5900: 'VNC',
+    5938: 'TeamViewer',
+    6568: 'AnyDesk',
+}
+
 # PROCESS BLOCKLIST (Cross-Platform)
 PROCESS_BLOCKLIST = {    
     "commercial_tools": {
@@ -49,8 +99,8 @@ PROCESS_BLOCKLIST = {
         "AA_v3.exe",             
 
         "UltraViewer.exe",       
-        "UltraViewer_Service.exe"
-        "UltraViewer_Desktop.exe"
+        "UltraViewer_Service.exe",
+        "UltraViewer_Desktop.exe",
         
         "RemotePC.exe",          
         "rpcservice.exe",        
@@ -159,7 +209,7 @@ PROCESS_BLOCKLIST = {
         "Loom",                  
         
         "screen_recorder.exe",   
-        "IcecreamScreenRecorder.exe"
+        "IcecreamScreenRecorder.exe",
         
         "screenrec.exe",         
         "screenrec",             
@@ -235,7 +285,11 @@ PROCESS_BLOCKLIST = {
         "XSplitBroadcaster.exe", 
 
         "Restream Studio.exe",   
-        "Restream Studio",       
+        "Restream Studio",      
+
+        "TwitchStudio.exe",        
+        "Twitch Studio",          
+        "twitch-studio",  
 
         "StreamYard.exe",        
         
@@ -245,7 +299,7 @@ PROCESS_BLOCKLIST = {
         "Wirecast.exe",          
         "Wirecast",              
     },
-    
+
     "conference_tools_sharing": {
         "Zoom.exe",              
         "zoom",                  

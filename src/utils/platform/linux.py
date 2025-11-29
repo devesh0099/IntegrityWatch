@@ -1,5 +1,19 @@
 from typing import Any
 
+TCP_STATE = {
+    '01': 'ESTABLISHED',
+    '02': 'SYN_SENT',
+    '03': 'SYN_RECV',
+    '04': 'FIN_WAIT1',
+    '05': 'FIN_WAIT2',
+    '06': 'TIME_WAIT',
+    '07': 'CLOSE',
+    '08': 'CLOSE_WAIT',
+    '09': 'LAST_ACK',
+    '0A': 'LISTEN',
+    '0B': 'CLOSING'
+}
+
 def read_proc_cpuinfo() -> str:
     try:
         with open('/proc/cpuinfo', 'r') as f:
@@ -127,3 +141,96 @@ def enumerate_processes() -> list[dict[str, Any]]:
     
     except Exception:
         return []
+
+def get_tcp_connections_for_pid(pid: int) -> list[dict]:
+    try:
+        import os
+
+        tcp_data = _parse_proc_net_tcp()
+
+        socket_inodes = _get_socket_inodes_for_pid(pid)
+
+        connections = []
+        for conn in tcp_data:
+            if conn['inode'] in socket_inodes:
+                connections.append({
+                    'local_addr': conn['local_addr'],
+                    'local_port': conn['local_port'],
+                    'remote_addr': conn['remote_addr'],
+                    'remote_port': conn['remote_port'],
+                    'state': conn['state'],
+                    'pid': pid
+                })
+
+        return connections
+    
+    except Exception:
+        return []
+    
+def _parse_proc_net_tcp() -> list[dict]:
+    connections = []
+
+    try:
+        with open('/proc/net/tcp', 'r') as f:
+            lines = f.readlines()[1:]
+
+        for line in lines:
+            parts = line.split()
+            if len(parts) < 10:
+                continue
+
+            local_addr, local_port = _parse_address(parts[1])
+            remote_addr, remote_port = _parse_address(parts[2])
+            state_hex = parts[3]
+            inode = int(parts[9])
+
+            connections.append({
+                'local_addr': local_addr,
+                'local_port': local_port,
+                'remote_addr': remote_addr,
+                'remote_port': remote_port,
+                'state': TCP_STATE.get(state_hex, 'UNKNOWN'),
+                'inode': inode
+            })
+
+        return connections
+    except:
+        return []
+    
+def _parse_address(addr_str: str) -> tuple:
+    addr_hex, port_hex = addr_str.split(':')
+
+    ip_int = int(addr_hex, 16)
+    ip = f"{ip_int & 0xFF}.{(ip_int >> 8) & 0xFF}.{(ip_int >> 16) & 0xFF}.{(ip_int >> 24) & 0xFF}"
+    
+    port = int(port_hex, 16)
+    return ip, port
+                
+def _get_socket_inodes_for_pid(pid: int) -> set:
+    import os
+    inodes = set()
+
+    try:
+        fd_dir = f'/proc/{pid}/fd'
+
+        for fd_name in os.listdir(fd_dir):
+            try:
+                link = os.readlink(f'{fd_dir}/{fd_name}')
+
+                if link.startswith('socket:['):
+                    inode = int(link[8:-1])
+                    inodes.add(inode)
+            except:
+                continue
+    except:
+        pass
+
+    return inodes
+
+def reverse_dns_lookup(ip_address: str) -> str:
+    try:
+        import socket
+        result = socket.gethostbyaddr(ip_address)
+        return result[0]
+    except:
+        return ""

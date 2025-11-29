@@ -1,5 +1,21 @@
 from typing import Any
 
+TCP_STATE = {
+    1: 'CLOSED',
+    2: 'LISTEN',
+    3: 'SYN_SENT',
+    4: 'SYN_RCVD',
+    5: 'ESTABLISHED',
+    6: 'FIN_WAIT1',
+    7: 'FIN_WAIT2',
+    8: 'CLOSE_WAIT',
+    9: 'CLOSING',
+    10: 'LAST_ACK',
+    11: 'TIME_WAIT',
+    12: 'DELETE_TCB'
+}
+
+
 def get_cpu_info() -> dict:
     try:
         import wmi
@@ -457,3 +473,110 @@ def enumerate_processes() -> list[dict[str, Any]]:
         return processes
     except Exception:
         return []
+    
+def get_tcp_connections_for_pid(pid: int) -> list[dict]:
+    # Scaning the TCP table to get the info on the connections
+    try:
+        import ctypes
+        from ctypes import wintypes
+        import socket
+        import struct
+
+        class MIB_TCPROW_OWNER_PID(ctypes.Structure):
+            _fields_ = [
+                ("dwState", wintypes.DWORD),
+                ("dwLocalAddr", wintypes.DWORD),
+                ("dwLocalPort", wintypes.DWORD),
+                ("dwRemoteAddr", wintypes.DWORD),
+                ("dwRemotePort", wintypes.DWORD),
+                ("dwOwningPid", wintypes.DWORD),
+            ]
+        
+        class MIB_TCPTABLE_OWNER_PID(ctypes.Structure):
+            _fields_ = [
+                ("dwNumEntries", wintypes.DWORD),
+                ("table", MIB_TCPROW_OWNER_PID * 1),
+            ]
+        
+        iphlpapi = ctypes.windll.iphlpapi
+
+        # Defining the function
+        GetExtendedTcpTable = iphlpapi.GetExtendedTcpTable
+        GetExtendedTcpTable.argtypes = [
+            ctypes.c_void_p,      
+            ctypes.POINTER(wintypes.DWORD), 
+            wintypes.BOOL,     
+            wintypes.DWORD,    
+            ctypes.c_int,      
+            wintypes.DWORD     
+        ]
+        GetExtendedTcpTable.restype = wintypes.UINT
+
+        # First Function Call for buffer
+        size = wintypes.DWORD(0)
+        GetExtendedTcpTable(
+            None,  # NULL pointer
+            ctypes.byref(size), # Output to size needed as not enough buffer is provided
+            False, # Get Border?
+            2, # AF_INET (IPv4)
+            5, # TCP_TABLE_OWNER_PID_ALL
+            0  # Reserved
+        ) 
+
+        if size.value == 0:
+            return []
+        
+        # Second Function call for allocation
+        buffer = ctypes.create_string_buffer(size.value)
+        result = GetExtendedTcpTable(
+            buffer, # Actual buffer of required size
+            ctypes.byref(size), # Size of buffer
+            False,
+            2,
+            5,
+            0
+        )
+        
+        if result != 0:
+            return []
+        
+        table = ctypes.cast(buffer, ctypes.POINTER(MIB_TCPTABLE_OWNER_PID)).contents
+        num_entries = table.dwNumEntries
+
+        connections = []
+
+        for i in range(num_entries):
+            row_ptr = ctypes.cast(
+                ctypes.addressof(table.table) + (i * ctypes.sizeof(MIB_TCPROW_OWNER_PID)),
+                ctypes.POINTER(MIB_TCPROW_OWNER_PID)
+            )
+            row = row_ptr.contents
+
+            if row.dwOwningPid == pid:
+                ip_int = row.dwLocalAddr
+                local_addr =  f"{ip_int & 0xFF}.{(ip_int >> 8) & 0xFF}.{(ip_int >> 16 & 0xFF)}.{(ip_int>>24 & 0xFF)}"
+
+                ip_int = row.dwRemoteAddr
+                remote_addr = f"{ip_int & 0xFF}.{(ip_int >> 8) & 0xFF}.{(ip_int >> 16 & 0xFF)}.{(ip_int>>24 & 0xFF)}"
+
+                connections.append({
+                    'local_addr': local_addr,
+                    'local_port': socket.ntohs(row.dwLocalPort & 0xFFFF),
+                    'remote_addr': remote_addr,
+                    'remote_port': socket.ntohs(row.dwRemotePort & 0xFFFF),
+                    'state': TCP_STATE.get(row.dwState, 'UNKNOWN'),
+                    'pid': pid
+                })
+        
+        return connections
+    
+    except Exception:
+        return []
+    
+def reverse_dns_lookup(ip_address: str) -> str:
+    try:
+        import socket
+        result = socket.gethostbyaddr(ip_address)
+        return result[0]
+    except:
+        return ""
