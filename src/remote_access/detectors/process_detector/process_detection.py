@@ -181,10 +181,19 @@ class ProcessDetector(BaseDetector):
                     continue
                 
                 # Check 2: PORT Based Blocking
+                if conn['local_port'] in SUSPICIOUS_PORTS:
+                    tool = PORT_TO_TOOL.get(conn['local_port'], 'Unknown Remote Access Tool')
+
+                    self.logger.debug(f"Found suspicious local port with {tool} on port {conn['local_port']} and pid {conn['pid']}")
+                    return {
+                        'method': 'network_port',
+                        'details': f"Connecting to {tool} port {conn['local_port']} ({conn['remote_addr']})"
+                    }
+                
                 if conn['remote_port'] in SUSPICIOUS_PORTS:
                     tool = PORT_TO_TOOL.get(conn['remote_port'], 'Unknown Remote Access Tool')
 
-                    self.logger.debug(f"Found {tool} port {conn['remote_port']} and pid {conn['pid']}")
+                    self.logger.debug(f"Found suspicious remote port with {tool} on port {conn['remote_port']} and pid {conn['pid']}")
                     return {
                         'method': 'network_port',
                         'details': f"Connecting to {tool} port {conn['remote_port']} ({conn['remote_addr']})"
