@@ -1,6 +1,8 @@
+from src.config import config
+
+from ...constants import PROCESS_BLOCKLIST
 from ..base import BaseDetector
 from ...core.result import TechniqueResult
-from src.remote_access.constants import PROCESS_BLOCKLIST
 from typing import Any
 
 class ProcessDetector(BaseDetector):
@@ -51,20 +53,17 @@ class ProcessDetector(BaseDetector):
                 if critical:
                     tier = 'CRITICAL'
                     threat_list = critical
-                    names = [t['name'] for t in critical]
-                    summary = f"Critical remote access tool(s) detected:\n"
+                    summary = f"Critical remote access tool(s) detected"
                 
                 elif low:
                     tier = 'LOW'
                     threat_list = low
-                    names = [t['name'] for t in low]
-                    summary = f"Screen Sharing service(s) detected:\n"
+                    summary = f"Screen Sharing service(s) detected"
 
                 else:
                     tier = 'UNKNOWN'
                     threat_list = unknown
-                    names = [t['name'] for t in unknown]
-                    summary = f"Screen Sharing service(s) detected:\n"
+                    summary = f"Screen Sharing service(s) detected"
 
                 unique_names = []
                 seen = set()
@@ -78,13 +77,13 @@ class ProcessDetector(BaseDetector):
                     
                 
                 if len(unique_names) <= 3:
-                    details = f"{summary}: {', '.join(unique_names)}"
+                    details = f"{summary}:- {', '.join(unique_names)}"
                 else:
-                    details = f"{summary}: {', '.join(unique_names[:3])} (and {len(unique_names) - 3} more)"
+                    details = f"{summary}:- {', '.join(unique_names[:3])} (and {len(unique_names) - 3} more)"
 
                 return TechniqueResult(
                     name=self.name,
-                    detected=True,
+                    detected=(tier=='CRITICAL'),
                     tier=tier,
                     details=details,
                     data={'threats': threats}
@@ -109,12 +108,18 @@ class ProcessDetector(BaseDetector):
     def _get_tier(self, process_name: str) -> str:
         name_lower = process_name.lower()
 
+        allow_conference = config.get('remote_access',"allow_conference_tools", False)
+        allow_unknown = config.get("remote_access","allow_unknown_process")
+
         critical_categories = [
             'commercial_tools',
             'vnc_variants', 
             'windows_native',
             'browser_extensions',
-            'admin_tools'
+            'admin_tools',
+            'screen_recording',
+            'virtual_camera',
+            'streaming_software'
         ]
 
         for category in critical_categories:
@@ -126,8 +131,11 @@ class ProcessDetector(BaseDetector):
         if 'conference_tools_sharing' in PROCESS_BLOCKLIST:
             conference_procs = [p.lower() for p in PROCESS_BLOCKLIST['conference_tools_sharing']]
             if name_lower in conference_procs:
-                return 'LOW'
-            
+                if allow_conference:
+                    return 'LOW'     
+                else:
+                    return 'CRITICAL'
+        
         return 'UNKOWN'
     
     def _enumerate_processes(self) -> list[dict[str, Any]]:

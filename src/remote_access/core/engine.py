@@ -1,5 +1,5 @@
 from src.utils.logger import get_logger
-from src.remote_access.core.result import DetectionResult, TechniqueResult, VERDICT_BLOCK, VERDICT_FLAG, VERDICT_CLEAN, VERDICT_SKIPPED
+from src.remote_access.core.result import DetectionResult, TechniqueResult, VERDICT_BLOCK, VERDICT_FLAG, VERDICT_CLEAN
 from src.remote_access.detectors.base import BaseDetector
 
 import threading

@@ -129,15 +129,17 @@ def main():
         save_report(report)
 
         interval = config.get("monitoring", "monitoring_interval", 5)
-        monitor = start_monitoring(
-            engine=remote_engine,
-            interval=interval,
-            heartbeat_callback=save_heartbeat_to_disk
-            )
+        
+        if final_verdict=="ALLOW": 
+            monitor = start_monitoring(
+                engine=remote_engine,
+                interval=interval,
+                heartbeat_callback=save_heartbeat_to_disk
+                )
 
-        input("\n[Monitoring Active] Press ENTER to stop verification...\n")
-        print("Stopping...")
-        monitor.stop_monitoring()
+            input("\n[Monitoring Active] Press ENTER to stop verification...\n")
+            print("Stopping...")
+            monitor.stop_monitoring()
 
         
         sys.exit(1 if final_verdict == "BLOCK" else 0)

@@ -18,6 +18,9 @@ DEFAULT_CONFIG = {
     },
     "monitoring": {
         "monitoring_interval": 5
+    },
+    "remote_access": {
+        "allow_conference_tools": True
     }
 }
 

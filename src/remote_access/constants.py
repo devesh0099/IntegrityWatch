@@ -1,5 +1,5 @@
-
-PROCESS_BLOCKLIST = {
+# PROCESS BLOCKLIST (Cross-Platform)
+PROCESS_BLOCKLIST = {    
     "commercial_tools": {
 
         "TeamViewer.exe",         
@@ -7,9 +7,10 @@ PROCESS_BLOCKLIST = {
         "tv_w32.exe",            
         "tv_x64.exe",            
         "teamviewer",            
+        "teamviewerd",           
         "TeamViewer",            
         "TeamViewerHost",        
-        
+
         "AnyDesk.exe",           
         "ad.exe",                
         "anydesk",               
@@ -24,15 +25,18 @@ PROCESS_BLOCKLIST = {
         "GoToMeeting.exe",       
         "g2mcomm.exe",           
         "g2mstart.exe",          
+        "g2mlauncher.exe",       
         
         "Splashtop.exe",         
         "SRServer.exe",          
         "SRService.exe",         
+        "SRFeature.exe",         
         "Splashtop Business",    
         "Splashtop Streamer",    
 
         "Supremo.exe",           
         "SupremoService.exe",    
+        "SupremoHelper.exe",     
         
         "RustDesk.exe",          
         "rustdesk",              
@@ -43,17 +47,24 @@ PROCESS_BLOCKLIST = {
         
         "Ammyy.exe",             
         "AA_v3.exe",             
-        
+
         "UltraViewer.exe",       
         "UltraViewer_Service.exe"
-
+        "UltraViewer_Desktop.exe"
+        
         "RemotePC.exe",          
         "rpcservice.exe",        
-
+        "RemotePCDesktop.exe",   
+        
         "ZohoAssist.exe",        
         "ZohoAssistService.exe", 
+        
+        "dwagent.exe",           
+        "dwagent",               
+        
+        "chrome_remote_desktop", 
     },
-    
+
     "vnc_variants": {
         "winvnc.exe",            
         "winvnc4.exe",           
@@ -64,6 +75,7 @@ PROCESS_BLOCKLIST = {
         "ultravnc.exe",          
         "tigervnc.exe",          
         "realvnc.exe",           
+        "vncserver_x64.exe",     
 
         "Xvnc",                  
         "vncserver",             
@@ -71,30 +83,36 @@ PROCESS_BLOCKLIST = {
         "tightvncserver",        
         "vino",                  
         "vino-server",           
-
+        "tigervnc",              
+        "krfb",                  
+        
         "ScreensharingAgent",    
     },
-    
+
     "windows_native": {
         "mstsc.exe",             
         "msra.exe",              
         "QuickAssist.exe",       
     },
-    
+
     "browser_extensions": {
+
         "remoting_host.exe",     
         "chrome-remote-desktop", 
         "Chrome Remote Desktop", 
         
         "rdp_host.exe",          
     },
+
     "admin_tools": {
         "psexec.exe",            
+        "psexec64.exe",          
         "paexec.exe",            
         
         "screenconnect.client.exe",   
         "screenconnect.service.exe",  
         "ScreenConnect.ClientService",
+        "screenconnect",              
         
         "meshagent.exe",         
         "meshagent",             
@@ -102,7 +120,132 @@ PROCESS_BLOCKLIST = {
         
         "rutserv.exe",           
         "rfusclient.exe",        
+        "Agent.exe",             
+        
+        "ITSMService.exe",       
+        "RmmService.exe",        
     },
+
+    "screen_recording": {
+
+        "obs64.exe",             
+        "obs32.exe",             
+        "obs.exe",               
+        "obs",                   
+        
+        "ShareX.exe",            
+
+        "bdcam.exe",             
+        "bdcam_nonadmin.exe",    
+        "bandicam.exe",          
+
+        "CamtasiaStudio.exe",    
+        "Camtasia.exe",          
+        "Camtasia 2023",         
+        "Camtasia 2024",         
+        "camtasia",              
+        
+        "ScreenFlow",            
+
+        "Snagit.exe",            
+        "SnagitEditor.exe",      
+        "Snagit 2023",           
+        "Snagit 2024",           
+        
+        "ScreenToGif.exe",       
+
+        "Loom.exe",              
+        "loom",                  
+        "Loom",                  
+        
+        "screen_recorder.exe",   
+        "IcecreamScreenRecorder.exe"
+        
+        "screenrec.exe",         
+        "screenrec",             
+        "ScreenRec",             
+        
+        "simplescreenrecorder",  
+        "ssr-glinject",          
+        
+        "kazam",                 
+        
+        "recordmydesktop",       
+        "gtk-recordmydesktop",   
+        "qt-recordmydesktop",    
+        
+        "peek",                  
+
+        "vokoscreen",            
+        "vokoscreenNG",          
+
+        "green-recorder",        
+
+        "QuickTime Player",      
+        
+        "Kap",                   
+        
+        "ffmpeg.exe",            
+        "ffmpeg",                
+    },
+
+    "virtual_camera": {
+        "obs-virtualcam.exe",    
+        "obs-camera",            
+
+        "ManyCam.exe",           
+        "ManyCamService.exe",    
+        "ManyCam",               
+
+        "VCam.exe",              
+        "XSplitVCam.exe",        
+
+        "Snap Camera.exe",       
+        "Snap Camera",           
+
+        "CamTwist",              
+        "CamTwist Studio",       
+        
+        "SplitCam.exe",          
+
+        "WebcamMax.exe",         
+        
+        "SparkoCam.exe",         
+
+        "webcamoid.exe",         
+        "webcamoid",             
+        
+        "ChromaCam.exe",         
+
+        "YouCam.exe",            
+        "YouCamService.exe",     
+
+        "AlterCam.exe",          
+        
+        "LogiCapture.exe",       
+        "Logitech Capture",      
+    },
+
+    "streaming_software": {
+        "Streamlabs OBS.exe",    
+        "Streamlabs Desktop.exe",
+        "Streamlabs OBS",        
+        
+        "XSplit.Core.exe",       
+        "XSplitBroadcaster.exe", 
+
+        "Restream Studio.exe",   
+        "Restream Studio",       
+
+        "StreamYard.exe",        
+        
+        "vMix64.exe",            
+        "vMix.exe",              
+        
+        "Wirecast.exe",          
+        "Wirecast",              
+    },
+    
     "conference_tools_sharing": {
         "Zoom.exe",              
         "zoom",                  
@@ -112,13 +255,15 @@ PROCESS_BLOCKLIST = {
         "Teams.exe",             
         "teams",                 
         "Microsoft Teams",       
+        "ms-teams",              
         
         "CiscoWebExStart.exe",   
         "webex.exe",             
         "WebexHost.exe",         
         "Webex",                 
         "CiscoCollabHost",       
-        
+        "webexmta",              
+
         "Discord.exe",           
         "discord",               
         "Discord",               
@@ -130,6 +275,12 @@ PROCESS_BLOCKLIST = {
         "Skype.exe",             
         "skypeforlinux",         
         "Skype",                 
+
+        "jitsi-meet.exe",        
+        "jitsi-meet",            
+        "Jitsi Meet",            
         
+        "BlueJeans.exe",         
+        "BlueJeans",             
     },
 }
