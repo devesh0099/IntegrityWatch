@@ -5,7 +5,7 @@ from pathlib import Path
 # Default settings
 DEFAULT_CONFIG = {
     "logging": {
-        "console_output": True,
+        "console_output": False,
         "console_level": "INFO",
         "file_output": True,
         "file_path": "logs/integrity_watch.log", 

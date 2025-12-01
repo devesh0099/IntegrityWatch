@@ -1,3 +1,27 @@
+COMMON_FALLBACK_PORTS ={
+    80, # HTTP
+    443, # HTTPS
+    8080, 8443 # HTTP alternatives
+}
+
+# Port to tool mapping {Out of all suspicious ports only these ones are 100% certain to a specific tool}
+PORT_TO_TOOL = {
+    3389: 'RDP',
+    5900: 'VNC',
+    5938: 'TeamViewer',
+    6568: 'AnyDesk',
+}
+
+# Known remote access domains
+KNOWN_REMOTE_ACCESS_DOMAINS = [
+    'teamviewer.com',
+    'anydesk.com',
+    'net.anydesk.com',
+    'realvnc.com',
+    'tightvnc.com',
+    'rustdesk.com',
+]
+
 # All suspicious ports
 SUSPICIOUS_PORTS = {
     3389, # RDP - Microsoft standard
@@ -8,12 +32,6 @@ SUSPICIOUS_PORTS = {
     7070, # AnyDesk direct connection
     21116, 21117, 21118, 21119, # RustDesk
     11011, 11012 # Supremo
-}
-
-COMMON_FALLBACK_PORTS ={
-    80, # HTTP
-    443, # HTTPS
-    8080, 8443 # HTTP alternatives
 }
 
 COMMON_LEGITIMATE_PORTS = {
@@ -27,25 +45,6 @@ COMMON_LEGITIMATE_PORTS = {
     993, 995, # IMAP/POP3 SSL
     3306, # MySQL
     5432, # PostgreSQL
-}
-    
-
-# Known remote access domains
-KNOWN_REMOTE_ACCESS_DOMAINS = [
-    'teamviewer.com',
-    'anydesk.com',
-    'net.anydesk.com',
-    'realvnc.com',
-    'tightvnc.com',
-    'rustdesk.com',
-]
-
-# Port to tool mapping {Out of all suspicious ports only these ones are 100% certain to a specific tool}
-PORT_TO_TOOL = {
-    3389: 'RDP',
-    5900: 'VNC',
-    5938: 'TeamViewer',
-    6568: 'AnyDesk',
 }
 
 # PROCESS BLOCKLIST (Cross-Platform)

@@ -81,7 +81,9 @@ def get_tcp_connections_for_pid(pid: int) -> list[dict]:
             remote_parts = remote.split()
             remote_addr, remote_port = remote_parts[0].rsplit(':', 1)
             
-            state = remote_parts[1].strip('()') if len(remote_parts) > 1 else 'UNKNOWN'
+            state = 'UNKNOWN'
+            if len(parts) > 9:
+                state = parts[9].strip('()')
             
             connections.append({
                 'local_addr': local_addr,
