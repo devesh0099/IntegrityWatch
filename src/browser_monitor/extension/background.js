@@ -1,4 +1,70 @@
-const NATIVE_HOST_NAME = 'com.integrity.host';
+chrome.webNavigation.onCommitted.addListener((details) => {
+  if (details.frameId !== 0) return;
+  if (!details.url.startsWith('http')) return;
+  
+  console.log('[IntegrityWatch] Injecting override into:', details.url);
+  
+  chrome.scripting.executeScript({
+    target: { tabId: details.tabId },
+    world: 'MAIN',
+    injectImmediately: true,
+    func: function() {
+      console.log('[IntegrityWatch Override] Installing...');
+      
+      if (!navigator.mediaDevices?.getDisplayMedia) {
+        console.warn('[IntegrityWatch Override] API not available');
+        return;
+      }
+      
+      const original = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
+      
+      navigator.mediaDevices.getDisplayMedia = function(constraints) {
+        
+        const eventData = {
+          timestamp: Date.now(),
+          url: window.location.href,
+          title: document.title,
+          constraints: constraints ? JSON.parse(JSON.stringify(constraints)) : null
+        };
+        
+        console.log('[IntegrityWatch Override] Event data:', eventData);
+        
+        window.dispatchEvent(new CustomEvent('integritywatch-screenshare-start', {
+          detail: eventData
+        }));
+        
+        const promise = original(constraints);
+        
+        promise.then(stream => {
+          console.log('[IntegrityWatch Override] Monitoring stream...');
+          stream.getVideoTracks().forEach(track => {
+            track.addEventListener('ended', () => {
+              console.log('[IntegrityWatch Override] Stream ended');
+              window.dispatchEvent(new CustomEvent('integritywatch-screenshare-stop', {
+                detail: {
+                  timestamp: Date.now(),
+                  url: window.location.href
+                }
+              }));
+            });
+          });
+        }).catch(err => {
+          console.log('[IntegrityWatch Override] Cancelled:', err.name);
+        });
+        
+        return promise;
+      };
+      
+      console.log('[IntegrityWatch Override] Installed successfully');
+    }
+  }).catch(err => {
+    console.error('[IntegrityWatch] Injection failed:', err);
+  });
+}, { url: [{ schemes: ['http', 'https'] }] });
+
+//----------------------------------INJECTION------------------------------------------//
+
+const NATIVE_HOST_NAME = 'com.integritywatch.host';
 const HEARTBEAT_INTERVAL = 5000
 
 const SUSPICIOUS_DOMAINS = [
@@ -19,13 +85,13 @@ let heartbeatTimer = null;
 
 function connectNativeHost() {
     try{
-        nativePort = chrome.runtime.connectNativeHost(NATIVE_HOST_NAME);
+        nativePort = chrome.runtime.connectNative(NATIVE_HOST_NAME);
 
-        nativePort.onMessage.addListerner((message) => {
+        nativePort.onMessage.addListener((message) => {
             console.log('[IntegrityWatch] Received from native:', message);
             handleNativeMessage(message);
         });
-        nativePort.onDisconnect.addListerner(() => {
+        nativePort.onDisconnect.addListener(() => {
             console.error('[IntegrityWatch] Native host disconnected:',
                 chrome.runtime.lastError
             );
@@ -77,7 +143,7 @@ function startMonitoring(config) {
 
     if (heartbeatTimer) clearInterval(heartbeatTimer);
     heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
-
+    checkAlreadyOpenTabs();
     sendHeartbeat();
 }
 
@@ -117,6 +183,61 @@ async function sendHeartbeat() {
     }
 }
 
+async function checkAlreadyOpenTabs() {
+  console.log('[IntegrityWatch] Checking already open tabs...');
+  
+  try {
+    const tabs = await chrome.tabs.query({});
+    console.log(`[IntegrityWatch] Found ${tabs.length} open tabs`);
+    
+    const suspiciousPatterns = [
+      'meet.google.com',
+      'teams.microsoft.com',
+      'zoom.us',
+      'discord.com',
+      'slack.com',
+      'telegram.org',
+      'whatsapp.com',
+      'web.whatsapp.com',
+      'messenger.com',
+      'chat.google.com',
+      'hangouts.google.com'
+    ];
+    
+    let suspiciousCount = 0;
+    
+    for (const tab of tabs) {
+      if (!tab.url) continue;
+      
+      const isSuspicious = suspiciousPatterns.some(pattern => 
+        tab.url.includes(pattern)
+      );
+      
+      if (isSuspicious) {
+        suspiciousCount++;
+        console.warn(`[IntegrityWatch] Found already-open suspicious tab: ${tab.url}`);
+        
+        sendViolation('SUSPICIOUS_TAB_ALREADY_OPEN', {
+          tabId: tab.id,
+          url: tab.url,
+          title: tab.title,
+          detectedAt: 'extension_startup'
+        });
+      }
+    }
+    
+    if (suspiciousCount > 0) {
+      console.warn(`[IntegrityWatch] Found ${suspiciousCount} suspicious tabs already open`);
+    } else {
+      console.log('[IntegrityWatch] No suspicious tabs found at startup');
+    }
+    
+  } catch (error) {
+    console.error('[IntegrityWatch] Error checking already open tabs:', error);
+  }
+}
+
+
 function isSuspiciousURL(url) {
     if (!url) return false;
 
@@ -130,7 +251,7 @@ function isSuspiciousURL(url) {
     }
 }
 
-chrome.tabs.onCreated.addListerner((tab) =>{
+chrome.tabs.onCreated.addListener((tab) =>{
     if (!monitoringActive) return;
 
     if (tab.url && isSuspiciousURL(tab.url)) {
@@ -142,7 +263,7 @@ chrome.tabs.onCreated.addListerner((tab) =>{
     }
 });
 
-chrome.tabs.onUpdated.addListerner((tabId, changeinfo, tab) => {
+chrome.tabs.onUpdated.addListener((tabId, changeinfo, tab) => {
     if (!monitoringActive) return;
 
     if (changeinfo.url && isSuspiciousURL(changeinfo.url)) {
@@ -155,7 +276,7 @@ chrome.tabs.onUpdated.addListerner((tabId, changeinfo, tab) => {
     }
 });
 
-chrome.tabs.onActivated.addListerner(async (activeInfo) => {
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
     if (!monitoringActive) return;
 
     try {
@@ -172,7 +293,7 @@ chrome.tabs.onActivated.addListerner(async (activeInfo) => {
     }
 });
 
-chrome.runtime.onMessage.addListerner((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!monitoringActive) return;
 
     switch (message.type) {
@@ -180,7 +301,7 @@ chrome.runtime.onMessage.addListerner((message, sender, sendResponse) => {
             sendViolation('SCREEN_SHARE_DETECTED', {
                 tabId: sender.tab?.id,
                 url: sender.tab?.url,
-                title: sender.tan?.title,
+                title: sender.tab?.title,
                 constraints: message.constraints,
                 timestamp: message.timestamp
             });
@@ -211,20 +332,20 @@ function sendViolation(violationType, details) {
     sendToNative(violation);
 }
 
-chrome.runtime.onInstalled.addListerner(()=> {
+chrome.runtime.onInstalled.addListener(()=> {
     console.log('[IntegrityWatch] Extension installed');
     connectNativeHost();
 });
 
-chrome.runtime.onStartup.addListerner(() => {
+chrome.runtime.onStartup.addListener(() => {
     console.log('[IntegrityWatch] Extension started');
     connectNativeHost();
 });
 
 connectNativeHost();
 
-chrome.alarms.create('keepalive', { periodInMinutes: 1});
-chrome.alarms.onAlarm.addListerner((alarm) =>{
+chrome.alarms.create('keepalive', { periodInMinutes: 1 });
+chrome.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === 'keepalive') {
         console.log('[IntegrityWatch] Keepalive ping');
     }
