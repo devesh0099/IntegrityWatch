@@ -109,3 +109,44 @@ class DetectionResult:
         print(f"{CYAN}{'-'*60}{RESET}")
         print(f"VERDICT: {verdict_color}{self.verdict}{RESET} | {self.reason}")
         print(f"Duration: {self.exam_duration_minutes:.1f} min")
+
+    def display_monitor(self):
+        RED = '\033[91m'
+        GREEN = '\033[92m'
+        YELLOW = '\033[93m'
+        BLUE = '\033[94m'
+        BOLD = '\033[1m'
+        RESET = '\033[0m'
+        
+        import sys
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        
+        if self.verdict == VERDICT_PASS:
+            print(f"\r{BLUE}[{timestamp}]{RESET} Browser Monitor: {GREEN}CLEAN{RESET} | No violations detected...", end="", flush=True)
+        
+        elif self.verdict == "SKIPPED":
+            print(f"\r{BLUE}[{timestamp}]{RESET} Browser Monitor: {YELLOW}IDLE{RESET}  | {self.reason}", end="", flush=True)
+        
+        else:
+            print(f"\r{' ' * 80}\r", end="")
+            
+            if self.verdict == VERDICT_BLOCK:
+                tag_color = RED
+            else:
+                tag_color = YELLOW
+            
+            print(f"{tag_color}{BOLD}{'-'*60}{RESET}")
+            print(f"{tag_color}{BOLD}BROWSER SECURITY ALERT [{timestamp}]{RESET}")
+            print(f"{tag_color}{BOLD}{'-'*60}{RESET}")
+            print(f"VERDICT: {tag_color}{self.verdict}{RESET}")
+            print(f"REASON : {self.reason}")
+            
+            print(f"\n{BOLD}New Violations:{RESET}")
+            for violation in self.violations:
+                if violation.detected:
+                    print(f"  {tag_color}{violation.name}{RESET}")
+                    print(f"    ↳ {violation.details}")
+            
+            print(f"{tag_color}{'-'*60}{RESET}\n")
+            
+            sys.stdout.flush()

@@ -10,7 +10,8 @@ from src.utils.logger import setup_logging, get_logger
 
 from src.vm_detector.main import run_checks as VMEngine
 from src.remote_access.main import run_checks as RemoteEngine
-from src.remote_access.main import start_monitoring
+from src.browser_monitor.main import run_checks as BrowserTabEngine
+
 from src.core.report import ScanReport
 
 RED = '\033[91m'
@@ -19,6 +20,12 @@ YELLOW = '\033[93m'
 CYAN = '\033[96m'
 BOLD = '\033[1m'
 RESET = '\033[0m'
+
+VERDICT_PASS = "PASS"
+VERDICT_CLEAN = "ALLOW"
+VERDICT_BLOCK = "BLOCK"
+VERDICT_FLAG = "FLAG"
+
 
 root_logger = setup_logging()
 logger = get_logger("main")
@@ -60,50 +67,79 @@ class MonitoringCoordinator:
         self.logger.info("Monitoring stopped")
     
     def _monitor_loop(self, heartbeat_callback):
+        is_flagged = False
         while not self._stop_event.is_set():
             browser_result = self.browser_engine.check_current_state()
             remote_result = self.remote_engine.check_current_state()
             
-            combined_payload = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "browser_monitor": json.loads(browser_result.to_json()) if browser_result.total_violations > 0 else None,
-                "remote_access": json.loads(remote_result.to_json()) if remote_result.techniques else None
-            }
-            
-            if heartbeat_callback:
-                heartbeat_callback(combined_payload)
-            
-            should_block = False
+            is_blocked = False
             block_reason = None
             
-            if browser_result.verdict == "BLOCK":
-                should_block = True
+            if browser_result.verdict == VERDICT_BLOCK:
+                is_blocked = True
                 block_reason = f"Browser: {browser_result.reason}"
-            elif remote_result.verdict == "BLOCK":
-                should_block = True
+            elif remote_result.verdict == VERDICT_BLOCK:
+                is_blocked = True
                 block_reason = f"Remote Access: {remote_result.reason}"
             
-            if should_block:
+            if browser_result.verdict == VERDICT_FLAG or remote_result.verdict == VERDICT_FLAG:
+                is_flagged = True
+            
+            if heartbeat_callback:
+                status = "BLOCKED" if is_blocked else ("FLAGGED" if is_flagged else "CLEAN")
+                
+                combined_payload = {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "status": status,
+                    "browser_monitor": {
+                        "verdict": browser_result.verdict,
+                        "total_violations": browser_result.total_violations,
+                        "violations": [v.to_dict() for v in browser_result.violations if v.detected]
+                    } if browser_result.total_violations > 0 else {"verdict": "PASS", "total_violations": 0},
+                    "remote_access": {
+                        "verdict": remote_result.verdict,
+                        "techniques": [t.to_dict() for t in remote_result.techniques if t.detected]
+                    } if remote_result.techniques else {"verdict": "CLEAN"}
+                }
+                
+                if is_blocked:
+                    combined_payload["reason"] = block_reason
+                
+                heartbeat_callback(combined_payload)
+            
+            if is_blocked:
                 self.logger.critical(f"BLOCKING VIOLATION: {block_reason}")
+                
+                print(f"\r{' ' * 80}\r", end="", flush=True)
                 print(f"\n{RED}{BOLD}>>> INTEGRITY FAILED{RESET}")
                 print(f"{RED}Reason: {block_reason}{RESET}\n")
                 
-                if browser_result.total_violations > 0:
-                    browser_result.display()
-                if remote_result.techniques:
-                    remote_result.display()
+                if browser_result.verdict == VERDICT_BLOCK:
+                    browser_result.display_monitor()
+                
+                if remote_result.verdict == VERDICT_BLOCK:
+                    remote_result.display_monitor()
                 
                 self._stop_event.set()
                 self._monitoring = False
                 break
             
-            if browser_result.verdict == "FLAG":
-                self.logger.warning(f"Browser flagged: {browser_result.reason}")
-                browser_result.display()
+            if is_flagged:
+                print(f"\r{' ' * 80}\r", end="", flush=True)
+                
+                if browser_result.verdict == VERDICT_FLAG:
+                    browser_result.display_monitor()
+                
+                if remote_result.verdict == VERDICT_FLAG:
+                    remote_result.display_monitor()
             
-            if remote_result.verdict == "FLAG":
-                self.logger.warning(f"Remote flagged: {remote_result.reason}")
-                remote_result.display()
+            if not is_flagged and not is_blocked:
+                timestamp = datetime.now().strftime("%H:%M:%S")
+                BLUE = '\033[94m'
+                GREEN = '\033[92m'
+                RESET = '\033[0m'
+                
+                print(f"\r[{BLUE}{timestamp}{RESET}] Browser: {GREEN}CLEAN{RESET} | Remote: {GREEN}SECURE{RESET} | Monitoring active...", end="", flush=True)
             
             self._stop_event.wait(timeout=self.interval)
 
@@ -112,7 +148,7 @@ def print_header():
     print(f"{CYAN}{'='*60}{RESET}")
     print("SCANNING HOST ENVIRONMENT...\n")
 
-def get_final_reason(vm_result, remote_result, final_verdict):
+def get_final_reason(vm_result, remote_result,browser_result, final_verdict):
     if final_verdict == "ALLOW":
         return "System appears clean"
     
@@ -121,12 +157,16 @@ def get_final_reason(vm_result, remote_result, final_verdict):
             return f"VM Detected: {vm_result.reason}"
         if remote_result.verdict == "BLOCK":
             return f"Remote Access Detected: {remote_result.reason}"
+        if browser_result.verdict == "BLOCK":
+            return f"Suspicious Browser Tab Detected: {browser_result.reason}"
             
     if final_verdict == "FLAG":
         if vm_result.verdict == "FLAG":
             return f"VM Suspicion: {vm_result.reason}"
         if remote_result.verdict == "FLAG":
             return f"Remote Access Suspicion: {remote_result.reason}"
+        if browser_result.verdict == "FLAG":
+            return f"Suspicious Browser Tab Detected: {browser_result.reason}"
             
     return "Multiple security anomalies detected."
 
@@ -143,10 +183,10 @@ def print_summary(verdict, reason):
     print(f">> REASON:   {reason}")
     print(f"{CYAN}{'='*60}{RESET}\n")
 
-def calculate_final_verdict(vm_result, remote_result):
-    if vm_result.verdict == "BLOCK" or remote_result.verdict == "BLOCK":
+def calculate_final_verdict(vm_result, remote_result, browser_result):
+    if vm_result.verdict == "BLOCK" or remote_result.verdict == "BLOCK" or browser_result.verdict == "BLOCK":
         return "BLOCK"
-    if vm_result.verdict == "FLAG" or remote_result.verdict == "FLAG":
+    if vm_result.verdict == "FLAG" or remote_result.verdict == "FLAG" or browser_result.verdict == "FLAG":
         return "FLAG"
     return "ALLOW"
 
@@ -197,14 +237,29 @@ def main():
         logger.info("Running Remote Access Module...")
         remote_result, remote_engine = RemoteEngine()
         
-        final_verdict = calculate_final_verdict(vm_result, remote_result)
-        final_reason = get_final_reason(vm_result, remote_result, final_verdict)
+        logger.info("Running Browser Tab Detection Module...")
+        
+        browser_dir = Path("runtime/browser")
+        browser_dir.mkdir(parents=True, exist_ok=True)
+        for file in browser_dir.glob("*"):
+            if file.is_file():
+                try:
+                    file.unlink()
+                    logger.debug(f"Removed old file: {file}")
+                except Exception as e:
+                    logger.warning(f"Could not remove {file}: {e}")
+        
+        browser_result, browser_engine = BrowserTabEngine(browser_dir)
+
+        final_verdict = calculate_final_verdict(vm_result, remote_result, browser_result)
+        final_reason = get_final_reason(vm_result, remote_result, browser_result, final_verdict)
         
         report = ScanReport(
             session_id="LOCAL",
             timestamp=datetime.now(timezone.utc).isoformat(),
             vm_detection=json.loads(vm_result.to_json()),
             remote_access=json.loads(remote_result.to_json()),
+            browser_tab=json.loads(browser_result.to_json()),
             final_verdict=final_verdict
         )
         
@@ -214,22 +269,6 @@ def main():
         interval = config.get("monitoring","monitoring_interval", 5)
         
         if final_verdict == "ALLOW":
-            from src.browser_monitor.core.engine import DetectionEngine as BrowserEngine
-            
-            runtime_dir = Path("runtime/sessions")
-            runtime_dir.mkdir(parents=True, exist_ok=True)
-            session_dir = runtime_dir / datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            session_dir.mkdir(exist_ok=True)
-            
-            browser_engine = BrowserEngine(session_dir)
-            
-            logger.info("Running Browser Monitoring baseline scan...")
-            browser_result = browser_engine.run()
-            browser_result.display()
-            
-            if browser_result.verdict == "BLOCK":
-                print(f"\n{RED}Cannot start monitoring: Browser violations detected{RESET}")
-                sys.exit(1)
             
             coordinator = MonitoringCoordinator(
                 browser_engine=browser_engine,

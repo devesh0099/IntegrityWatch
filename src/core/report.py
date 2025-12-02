@@ -9,7 +9,8 @@ class ScanReport:
 
     vm_detection: dict  
     remote_access: dict 
-    
+    browser_tab: dict
+
     final_verdict: str  
     
     def to_json(self):

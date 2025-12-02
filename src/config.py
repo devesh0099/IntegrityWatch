@@ -21,6 +21,9 @@ DEFAULT_CONFIG = {
     },
     "remote_access": {
         "allow_conference_tools": True
+    },
+    "browser": {
+        "allow_suspicious_websites": False
     }
 }
 

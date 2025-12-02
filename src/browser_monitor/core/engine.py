@@ -1,15 +1,17 @@
 import json
 from pathlib import Path
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 import threading
-import time
 
-from ...utils.logger import get_logger
+from src.config import config
+
 from .result import DetectionResult, TechniqueResult, VERDICT_BLOCK, VERDICT_FLAG, VERDICT_PASS
+from ...utils.logger import get_logger
 
 from ..detectors.base import BaseDetector
-
+from ..detectors.screen_share import ScreenShareDetector
+from ..detectors.tab_switching import TabSwitchingDetector
 
 SEVERITY_MAPPING = {
     "Screen Sharing Detection": "CRITICAL",
@@ -17,8 +19,8 @@ SEVERITY_MAPPING = {
 }
 
 class DetectionEngine:
-    def __init__(self, session_dir: Path):
-        self.session_dir = Path(session_dir)
+    def __init__(self, browser_dir: Path):
+        self.browser_dir = Path(browser_dir)
         self.logger = get_logger("browser_monitor.engine")
 
         self.violations_file = self._find_violations_file()
@@ -35,19 +37,16 @@ class DetectionEngine:
         self._last_violation_count = 0
 
     def _find_violations_file(self) -> Path:
-        session_file = self.session_dir / 'violations.json'
+        session_file = self.browser_dir / 'violations.json'
         if session_file.exists():
             return session_file
-        
-        browser_file = self.session_dir.parent.parent / 'browser' / 'violations.json'
-
-        if browser_file.exists():
-            return browser_file
         
         return session_file
     
     def _load_detectors(self) -> list[BaseDetector]:
         return [
+            ScreenShareDetector(),
+            TabSwitchingDetector()
         ]
     
     def load_data(self) -> bool:
@@ -73,7 +72,7 @@ class DetectionEngine:
     def run(self) -> DetectionResult:
         self.logger.info("Starting Browser Monitoring Baseline Analysis...")
         report = DetectionResult()
-        report.session_id = self.session_dir.name
+        report.session_id = self.browser_dir.name
 
         for detector in self.detectors:
             result = detector.safe_scan()
@@ -81,7 +80,7 @@ class DetectionEngine:
             if result.error is None:
                 self._successful_detector_names.add(result.name)
 
-            result.severity = self.SEVERITY_MAPPING.get(result.name, "UNKNOWN")
+            result.severity = self.SEVERITY_MAPPING.get(result.name, "LOW")
 
             if result.detected:
                 if result.severity == "CRITICAL":
@@ -109,7 +108,7 @@ class DetectionEngine:
     
     def check_current_state(self) -> DetectionResult:
         result = DetectionResult()
-        result.session_id = self.session_dir.name
+        result.session_id = self.browser_dir.name
         
         if not self.load_data():
             return result
@@ -124,7 +123,7 @@ class DetectionEngine:
                 continue
             
             tech_result = detector.safe_monitor()
-            tech_result.severity = self.SEVERITY_MAPPING.get(tech_result.name, "UNKNOWN")
+            tech_result.severity = self.SEVERITY_MAPPING.get(tech_result.name, "LOW")
             
             if tech_result.detected:
                 if tech_result.severity == "CRITICAL":
@@ -170,7 +169,8 @@ class DetectionEngine:
         critical_detected = report.critical_violations > 0
         high_detected = report.high_violations > 0
         medium_detected = report.medium_violations > 0
-        
+
+        allow_suspicious_websites = config.get("browser", "allow_suspicious_websites", False)
         if critical_detected:
             report.verdict = VERDICT_BLOCK
             
@@ -184,11 +184,11 @@ class DetectionEngine:
             else:
                 report.reason = "Critical Violation Detected"
         
-        elif high_detected and report.total_violations >= 5:
+        elif high_detected and not allow_suspicious_websites:
             report.verdict = VERDICT_BLOCK
-            report.reason = "Multiple High-Severity Violations (Communication Apps)"
+            report.reason = "High-Severity Violations (Communication Apps)"
         
-        elif high_detected:
+        elif high_detected and allow_suspicious_websites:
             report.verdict = VERDICT_FLAG
             report.reason = "Suspicious Tab Activity Detected (Manual Review Required)"
         

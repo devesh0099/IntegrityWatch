@@ -6,9 +6,9 @@ from src.utils.logger import get_logger
 
 class BaseDetector(ABC):
     
-    def __init__(self, name: str, severity: str):
+    def __init__(self, name: str):
         self.name = name
-        self.severity = severity
+        self.severity = "UNKNOWN"
         self.logger = get_logger(f"browser_monitor.{self.__class__.__name__}")
         self.raw_violations: list[dict[str, Any]] = []
     
