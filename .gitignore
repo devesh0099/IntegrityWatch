@@ -3,6 +3,17 @@
 test
 __pycache__
 src/IntegrityWatch.egg-info/
+
+# Per user generated Files
 logs
 results
 config
+
+# Extension Key
+extension.pem
+
+# Runtime generationg file for inter process communication
+sessions
+heartbeat.json
+status.json
+violations.json

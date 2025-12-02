@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "IntegrityWatch Monitor",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvDAiTztGM1c9pD/R2vZQESSVtkA3IjQvPv3swEd+PQjTd7OohWQdzNPT8tgRtuFTy05TqCifroTHYpo1OQzbGEE6yBuKJXp8O5/kZuv6xwNI3AHErNMkz3ETMDHMl++8v5Q18hEdbAdihYqtd0acbox4st2jcHviQJlpcDUHr6mfz5+GsBy+NwV+niB+s4tURBOi3Gz4xxeSIejhXRucTGMsmsiDVI2V4tNaJyPiDx5zzEm28NJvOGX9VoMCo8+fncUp0hOVn3JA7Ubd8JpFA0fS1WthsrcLfbLRi+QGPTIrZGi0D1ryFccm7i4pglMSuOT8ARgMx33qBVboNG7xXwIDAQAB",
   "description": "Real-time browser monitoring for exam integrity",
   

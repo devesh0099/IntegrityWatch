@@ -64,6 +64,38 @@ class DetectionEngine:
         
         return result
 
+    def check_current_state(self) -> DetectionResult:
+        if not self._successful_detector_names:
+            return DetectionResult()
+        
+        cycle_result = DetectionResult()
+        
+        for detector in self.detectors:
+            if detector.name not in self._successful_detector_names:
+                continue
+            
+            tech_result = detector.safe_monitor()
+            tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
+            
+            if tech_result.detected:
+                if tech_result.tier == "CRITICAL":
+                    cycle_result.critical_hits += 1
+                elif tech_result.tier == "HIGH":
+                    cycle_result.high_hits += 1
+                elif tech_result.tier == "LOW":
+                    cycle_result.low_hits += 1
+            
+            cycle_result.techniques.append(tech_result)
+        
+        self._apply_verdict_logic(cycle_result)
+        
+        for tech in cycle_result.techniques:
+            if tech.detected and tech.name not in self.current_violations:
+                self.current_violations[tech.name] = tech
+        
+        return cycle_result
+
+
     def start_monitoring(self, 
                          interval: int = 5, 
                          display_callback: Callable[[DetectionResult], None] = None,

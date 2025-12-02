@@ -7,8 +7,6 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Any
 
-sys.stderr = open('/tmp/native_host_debug.log', 'w')
-
 class NativeMessagingProtocol:
     @staticmethod
     def read_message() -> Optional[dict[str, Any]]:

@@ -6,7 +6,7 @@ from ..config import config
 
 PROJECT_ROOT_NAME = "integrity_watch" 
 
-def setup_logging():
+def setup_logging(PROJECT_ROOT_NAME = PROJECT_ROOT_NAME):
     # Read Configuration from file
     console_enabled = config.get("logging", "console_output")
     console_lvl_str = config.get("logging", "console_level", "INFO")
