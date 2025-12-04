@@ -6,6 +6,9 @@ import os
 from pathlib import Path
 from datetime import datetime
 from typing import Optional, Any
+import threading
+import queue
+import time
 
 class NativeMessagingProtocol:
     @staticmethod
@@ -58,6 +61,8 @@ class NativeHostHandler:
 
         self.config_file = config_file
 
+        self._msg_queue = queue.Queue()
+
         self.violations_file = runtime_dir / 'violations.json'
         self.heartbeat_file = runtime_dir / 'heartbeat.json'
         self.status_file = runtime_dir / 'status.json'
@@ -74,6 +79,21 @@ class NativeHostHandler:
         self._running = False
         self._monitoring_active = False 
         self._clear_old_data()
+
+    def _read_stdin(self):
+        try:
+            while self._running:
+                msg = NativeMessagingProtocol.read_message()
+                if msg is None:
+                    self._running = False 
+                    break
+                if self._running: 
+                    self._msg_queue.put(msg)
+        except Exception as e:
+            sys.stderr.write(f"Stdin reader error: {e}\n")
+            sys.stderr.flush()
+            self._running = False
+
 
     def _clear_old_data(self):
         for file in [self.violations_file, self.heartbeat_file, self.status_file]:
@@ -97,7 +117,8 @@ class NativeHostHandler:
         self._running = True
         self._write_status("RUNNING")
         
-        import time
+        threading.Thread(target=self._read_stdin, daemon=True).start()
+        
         last_command_check = 0
         
         try:
@@ -107,9 +128,8 @@ class NativeHostHandler:
                     self._check_command_file()
                     last_command_check = current_time
                 
-                import select
-                if select.select([sys.stdin], [], [], 0.1)[0]:
-                    message = NativeMessagingProtocol.read_message()
+                try:
+                    message = self._msg_queue.get(timeout=0.1)
                     
                     if message is None:
                         sys.stderr.write("Extension disconnected (stdin EOF)\n")
@@ -117,17 +137,23 @@ class NativeHostHandler:
                         break
                     
                     self._route_message(message)
-                
+                except queue.Empty:
+                    pass  
+        
         except KeyboardInterrupt:
             sys.stderr.write("Native host interrupted by user\n")
             sys.stderr.flush()
         except Exception as e:
             sys.stderr.write(f"Fatal error in main loop: {e}\n")
+            import traceback
+            sys.stderr.write(traceback.format_exc())
             sys.stderr.flush()
         finally:
+            self._running = False
             self._write_status('STOPPED')
             sys.stderr.write("Native host shutting down\n")
             sys.stderr.flush()
+
 
     def _route_message(self, message: dict[str, Any]):
         msg_type = message.get('type', 'UNKNOWN')

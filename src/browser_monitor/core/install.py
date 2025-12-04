@@ -31,24 +31,24 @@ class NativeHostInstaller:
         if self.system in ['linux', 'darwin']:
             os.chmod(self.native_host_script, 0o755)
 
-            native_host_path = self._prepare_native_host()
+        native_host_path = self._prepare_native_host()
 
-            manifest_content = self._generate_manifest(native_host_path)
+        manifest_content = self._generate_manifest(native_host_path)
 
-            if self.system == 'windows':
-                return self._install_windows(manifest_content, native_host_path)
-            elif self.system in ['linux', 'darwin']:
-                return self._install_unix(manifest_content)
-            else:
-                self.logger.error(f"Unsupported platform: {self.system}")
-                return {}
-        
+        if self.system == 'windows':
+            return self._install_windows(manifest_content, native_host_path)
+        elif self.system in ['linux', 'darwin']:
+            return self._install_unix(manifest_content)
+        else:
+            self.logger.error(f"Unsupported platform: {self.system}")
+            return {}
+
     def _prepare_native_host(self) -> Path:
         if self.system == 'windows':
             bat_wrapper = self.native_host_script.parent / 'native_host.bat'
             python_exe = sys.executable
 
-            bat_content = f'@echi off\n"{python_exe}" "{self.native_host_script}"%*\n'
+            bat_content = f'@echo off\n"{python_exe}" "{self.native_host_script}" %*\n'
 
             with open(bat_wrapper, 'w') as f:
                 f.write(bat_content)
@@ -56,8 +56,8 @@ class NativeHostInstaller:
             self.logger.info(f"Created Windows wrapper: {bat_wrapper}")
             return bat_wrapper.resolve()
         else:
-
             return self.native_host_script.resolve()
+
         
     def _generate_manifest(self, native_host_path: Path) -> dict:
         return {
@@ -77,28 +77,33 @@ class NativeHostInstaller:
             self.logger.error("No browser paths found")
             return {}
         
-        manifest_dir = next(iter(browser_paths.values())).parent / 'IntegrityWatch'
-        manifest_dir.mkdir(parents=True, exist_ok=True)
-        manifest_file = manifest_dir / 'com.integritywatch.host.json'
-
-        try:
-            with open(manifest_file, 'w') as f:
-                json.dump(manifest_content, f, indent=2)
-
-            self.logger.info(f"Manifest written to: {manifest_file}")
-
-        except Exception as e:
-            self.logger.error(f"Failed to write manifest: {e}")
-            return {browser: False for browser in browser_paths.keys()}
+        results = {}
+    
+        for browser_name, manifest_dir in browser_paths.items():
+            try:
+                manifest_dir.mkdir(parents=True, exist_ok=True)
+                
+                manifest_file = manifest_dir / 'com.integritywatch.host.json'
+                
+                with open(manifest_file, 'w') as f:
+                    json.dump(manifest_content, f, indent=2)
+                
+                self.logger.info(f"{browser_name}: Manifest written to {manifest_file}")
+                
+                success = install_native_host_manifest_windows(manifest_file)
+                
+                if success:
+                    self.logger.info(f"{browser_name}: Registry key created")
+                    results[browser_name] = True
+                else:
+                    self.logger.error(f"{browser_name}: Failed to create registry key")
+                    results[browser_name] = False
+            
+            except Exception as e:
+                self.logger.error(f"{browser_name}: Failed - {e}")
+                results[browser_name] = False
         
-        success = install_native_host_manifest_windows(manifest_file)
-
-        if success:
-            self.logger.info("Registry Key Created")
-            return {browser: True for browser in browser_paths.keys()}
-        else:
-            self.logger.error("✗ Failed to create registry key")
-            return {browser: False for browser in browser_paths.keys()}
+        return results
 
 
     def _install_unix(self, manifest_content: dict) -> dict[str, bool]:
