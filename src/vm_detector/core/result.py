@@ -2,8 +2,8 @@ from dataclasses import dataclass, field
 from typing import Optional
 import json
 from datetime import datetime, timezone
-from pathlib import Path
-from ...config import config
+
+from src.utils.colors import RED, GREEN, PURPLE, YELLOW, CYAN, BOLD, RESET, BLUE
 
 VERDICT_BLOCK = "BLOCK"
 VERDICT_FLAG = "FLAG"
@@ -58,14 +58,6 @@ class DetectionResult:
         return json.dumps(data, indent=2)
 
     def display(self):
-        RED = '\033[91m'
-        GREEN = '\033[92m'
-        PURPLE = '\033[95m'
-        YELLOW = '\033[93m'
-        CYAN = '\033[96m'
-        BOLD = '\033[1m'
-        RESET = '\033[0m'
-
         print(f"\n{BOLD}{CYAN}>>> VM EVASION MODULE{RESET}")
         print(f"{CYAN}{'-'*60}{RESET}")
 

@@ -8,19 +8,13 @@ import time
 
 from src.config import config
 from src.utils.logger import setup_logging, get_logger
+from src.utils.colors import RED, GREEN, YELLOW, CYAN, BOLD, RESET
 
 from src.vm_detector.main import run_checks as VMEngine
 from src.remote_access.main import run_checks as RemoteEngine
 from src.browser_monitor.main import run_checks as BrowserTabEngine
 
 from src.core.report import ScanReport
-
-RED = '\033[91m'
-GREEN = '\033[92m'
-YELLOW = '\033[93m'
-CYAN = '\033[96m'
-BOLD = '\033[1m'
-RESET = '\033[0m'
 
 VERDICT_PASS = "PASS"
 VERDICT_CLEAN = "ALLOW"

@@ -3,6 +3,8 @@ from typing import Optional, List, Dict, Any
 import json
 from datetime import datetime, timezone
 
+from src.utils.colors import RED, GREEN, PURPLE, YELLOW, CYAN, BOLD, RESET, BLUE
+
 import sys
 
 VERDICT_BLOCK = "BLOCK"
@@ -61,14 +63,6 @@ class DetectionResult:
         return json.dumps(data, indent=2)
 
     def display(self):
-        RED = '\033[91m'
-        GREEN = '\033[92m'
-        PURPLE = '\033[95m'
-        YELLOW = '\033[93m'
-        CYAN = '\033[96m'
-        BOLD = '\033[1m'
-        RESET = '\033[0m'
-
         print(f"\n{BOLD}{CYAN}>>> REMOTE ACCESS MODULE{RESET}")
         print(f"{CYAN}{'-'*60}{RESET}")
 
@@ -96,13 +90,6 @@ class DetectionResult:
         print(f"REMOTE VERDICT: {verdict_color}{self.verdict}{RESET} | {self.reason}")
     
     def display_monitor(self):
-        RED = '\033[91m'
-        GREEN = '\033[92m'
-        YELLOW = '\033[93m'
-        BLUE = '\033[94m'
-        BOLD = '\033[1m'
-        RESET = '\033[0m'
-        
         timestamp = datetime.now().strftime("%H:%M:%S")
 
         if self.verdict == VERDICT_CLEAN:

@@ -3,6 +3,8 @@ from typing import Optional
 import json
 from datetime import datetime, timezone
 
+from src.utils.colors import RED, GREEN, PURPLE, YELLOW, CYAN, BOLD, RESET, BLUE
+
 VERDICT_BLOCK = "BLOCK"
 VERDICT_FLAG = "FLAG"
 VERDICT_PASS = "PASS"
@@ -64,14 +66,6 @@ class DetectionResult:
         return json.dumps(data, indent=2)
     
     def display(self):
-        RED = '\033[91m'
-        GREEN = '\033[92m'
-        PURPLE = '\033[95m'
-        YELLOW = '\033[93m'
-        CYAN = '\033[96m'
-        BOLD = '\033[1m'
-        RESET = '\033[0m'
-
         print(f"\n{BOLD}{CYAN}>>> BROWSER MOINTORING SYSTEM{RESET}")
         print(f"{CYAN}{'-'*60}{RESET}")
 
@@ -111,12 +105,6 @@ class DetectionResult:
         print(f"Duration: {self.exam_duration_minutes:.1f} min")
 
     def display_monitor(self):
-        RED = '\033[91m'
-        GREEN = '\033[92m'
-        YELLOW = '\033[93m'
-        BLUE = '\033[94m'
-        BOLD = '\033[1m'
-        RESET = '\033[0m'
         import sys
         
         timestamp = datetime.now().strftime("%H:%M:%S")
