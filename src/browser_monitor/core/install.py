@@ -3,9 +3,9 @@ import sys
 import json
 from pathlib import Path
 
-from ...utils.browser import get_all_browser_native_host_paths, install_native_host_manifest_unix, install_native_host_manifest_windows, get_installed_chromium_browsers
-from ...utils.logger import get_logger
-from ...utils.platform.base import get_current_platform
+from src.utils.browser import get_all_browser_native_host_paths, install_native_host_manifest_windows, get_installed_chromium_browsers
+from src.utils.logger import get_logger
+from src.utils.platform.base import get_current_platform
 
 class NativeHostInstaller:
     def __init__(self):

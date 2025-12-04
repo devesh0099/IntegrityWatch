@@ -1,0 +1,34 @@
+name: Build Windows Wheels
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install wheel
+        run: pip install wheel
+      
+      - name: Build cpuid-native wheel
+        run: pip wheel cpuid-native --no-deps -w wheels/
+      
+      - name: Build cpuid wheel
+        run: pip wheel cpuid --no-deps -w wheels/
+      
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-wheels-py311
+          path: wheels/*.whl
+          retention-days: 90
