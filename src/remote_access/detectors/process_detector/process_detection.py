@@ -125,7 +125,7 @@ class ProcessDetector(BaseDetector):
 
                 return TechniqueResult(
                     name=self.name,
-                    detected=(tier=='CRITICAL'),
+                    detected=True,
                     tier=tier,
                     details=details,
                     data={'threats': threats}

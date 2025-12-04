@@ -91,7 +91,7 @@ class DetectionResult:
                 status_text = "DETECTED"
             else:
                 status_color = GREEN
-                status_text = "CLEAN"
+                status_text = "Monitoring.."
 
             severity_color = PURPLE if violation.severity == "CRITICAL" else (YELLOW if violation.severity == "HIGH" else CYAN)
 
@@ -117,16 +117,14 @@ class DetectionResult:
         BLUE = '\033[94m'
         BOLD = '\033[1m'
         RESET = '\033[0m'
-        
         import sys
+        
         timestamp = datetime.now().strftime("%H:%M:%S")
         
         if self.verdict == VERDICT_PASS:
             print(f"\r{BLUE}[{timestamp}]{RESET} Browser Monitor: {GREEN}CLEAN{RESET} | No violations detected...", end="", flush=True)
-        
         elif self.verdict == "SKIPPED":
-            print(f"\r{BLUE}[{timestamp}]{RESET} Browser Monitor: {YELLOW}IDLE{RESET}  | {self.reason}", end="", flush=True)
-        
+            print(f"\r{BLUE}[{timestamp}]{RESET} Browser Monitor: {YELLOW}IDLE{RESET} | {self.reason}", end="", flush=True)
         else:
             print(f"\r{' ' * 80}\r", end="")
             
@@ -141,12 +139,11 @@ class DetectionResult:
             print(f"VERDICT: {tag_color}{self.verdict}{RESET}")
             print(f"REASON : {self.reason}")
             
-            print(f"\n{BOLD}New Violations:{RESET}")
+            print(f"\n{BOLD}Violations Detected:{RESET}")
             for violation in self.violations:
                 if violation.detected:
-                    print(f"  {tag_color}{violation.name}{RESET}")
+                    print(f"  • {tag_color}{violation.name}{RESET}")
                     print(f"    ↳ {violation.details}")
             
             print(f"{tag_color}{'-'*60}{RESET}\n")
-            
             sys.stdout.flush()

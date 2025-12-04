@@ -148,27 +148,33 @@ def print_header():
     print(f"{CYAN}{'='*60}{RESET}")
     print("SCANNING HOST ENVIRONMENT...\n")
 
-def get_final_reason(vm_result, remote_result,browser_result, final_verdict):
+def get_final_reason(vm_result, remote_result, browser_result, final_verdict):
     if final_verdict == "ALLOW":
         return "System appears clean"
     
+    reasons = []
+    
     if final_verdict == "BLOCK":
         if vm_result.verdict == "BLOCK":
-            return f"VM Detected: {vm_result.reason}"
+            reasons.append(f"VM: {vm_result.reason}")
         if remote_result.verdict == "BLOCK":
-            return f"Remote Access Detected: {remote_result.reason}"
+            reasons.append(f"Remote Access: {remote_result.reason}")
         if browser_result.verdict == "BLOCK":
-            return f"Suspicious Browser Tab Detected: {browser_result.reason}"
-            
+            reasons.append(f"Browser: {browser_result.reason}")
+        
+        return " | ".join(reasons) if reasons else "Unknown blocking violation"
+    
     if final_verdict == "FLAG":
         if vm_result.verdict == "FLAG":
-            return f"VM Suspicion: {vm_result.reason}"
+            reasons.append(f"VM: {vm_result.reason}")
         if remote_result.verdict == "FLAG":
-            return f"Remote Access Suspicion: {remote_result.reason}"
+            reasons.append(f"Remote: {remote_result.reason}")
         if browser_result.verdict == "FLAG":
-            return f"Suspicious Browser Tab Detected: {browser_result.reason}"
-            
-    return "Multiple security anomalies detected."
+            reasons.append(f"Browser: {browser_result.reason}")
+        
+        return " | ".join(reasons) if reasons else "Multiple security anomalies detected"
+    
+    return "Unknown status"
 
 def print_summary(verdict, reason):
     verdict_color = GREEN
@@ -238,9 +244,13 @@ def main():
         remote_result, remote_engine = RemoteEngine()
         
         logger.info("Running Browser Tab Detection Module...")
-        
+
         browser_dir = Path("runtime/browser")
         browser_dir.mkdir(parents=True, exist_ok=True)
+
+        logger.info("Writing Start Command for Native Host")
+
+        logger.info("Deleting Previous files.")
         for file in browser_dir.glob("*"):
             if file.is_file():
                 try:
@@ -248,6 +258,14 @@ def main():
                     logger.debug(f"Removed old file: {file}")
                 except Exception as e:
                     logger.warning(f"Could not remove {file}: {e}")
+
+        command_file = browser_dir / 'command.json'
+        try:
+            with open(command_file, 'w') as f:
+                json.dump({'command': 'START_MONITORING', 'timestamp': datetime.now().timestamp()}, f)
+            logger.info("Sent START_MONITORING command to native host")
+        except Exception as e:
+            logger.warning(f"Failed to write command file: {e}")
         
         browser_result, browser_engine = BrowserTabEngine(browser_dir)
 
@@ -268,7 +286,7 @@ def main():
         
         interval = config.get("monitoring","monitoring_interval", 5)
         
-        if final_verdict == "ALLOW":
+        if final_verdict == "ALLOW" or final_verdict == "FLAG"  :
             
             coordinator = MonitoringCoordinator(
                 browser_engine=browser_engine,
@@ -281,7 +299,13 @@ def main():
             print(f"\n{GREEN}>>> Unified Monitoring Active{RESET}")
             print(f"Monitoring browser violations and remote access every {interval}s")
             input("\n[Press ENTER to stop monitoring]\n")
-            
+            try:
+                command_file = browser_dir / 'command.json'
+                with open(command_file, 'w') as f:
+                    json.dump({'command': 'STOP_MONITORING', 'timestamp': datetime.now().timestamp()}, f)
+                logger.info("Sent STOP_MONITORING command")
+            except:
+                pass
             print("Stopping...")
             coordinator.stop()
         
@@ -291,11 +315,27 @@ def main():
         print(f"\n{YELLOW}Interrupted by user{RESET}")
         if 'coordinator' in locals():
             coordinator.stop()
+
+        if 'browser_dir' in locals():
+            try:
+                command_file = browser_dir / 'command.json'
+                with open(command_file, 'w') as f:
+                    json.dump({'command': 'STOP_MONITORING', 'timestamp': datetime.now().timestamp()}, f)
+                logger.info("Sent STOP_MONITORING command")
+            except:
+                pass
         sys.exit(130)
         
     except Exception as e:
         logger.critical(f"Execution failed: {e}", exc_info=True)
         print(f"\n{RED}CRITICAL ERROR: {e}{RESET}")
+        try:
+            command_file = browser_dir / 'command.json'
+            with open(command_file, 'w') as f:
+                json.dump({'command': 'STOP_MONITORING', 'timestamp': datetime.now().timestamp()}, f)
+            logger.info("Sent STOP_MONITORING command")
+        except:
+            pass
         sys.exit(1)
 
 

@@ -29,7 +29,7 @@ class NativeMessagingProtocol:
             return json.loads(message_text)
         
         except Exception as e:
-            sys.stderr.write(f"Error reading message: {e}")
+            sys.stderr.write(f"Error reading message: {e}\n")
             sys.stderr.flush()
             return None
         
@@ -46,7 +46,7 @@ class NativeMessagingProtocol:
 
             return True
         except Exception as e:
-            sys.stderr.write(f"Error sending message: {e}")
+            sys.stderr.write(f"Error sending message: {e}\n")
             sys.stderr.flush()
             return False
         
@@ -61,6 +61,7 @@ class NativeHostHandler:
         self.violations_file = runtime_dir / 'violations.json'
         self.heartbeat_file = runtime_dir / 'heartbeat.json'
         self.status_file = runtime_dir / 'status.json'
+        self.command_file = runtime_dir / 'command.json'
 
         self.message_handlers: dict[str, callable] = {
             'EXTENSION_READY': self._handle_extension_ready,
@@ -71,6 +72,7 @@ class NativeHostHandler:
         }
 
         self._running = False
+        self._monitoring_active = False 
         self._clear_old_data()
 
     def _clear_old_data(self):
@@ -79,52 +81,57 @@ class NativeHostHandler:
                 try:
                     file.unlink()
                 except Exception as e:
-                    sys.stderr.write(f"Failed to clear {file.name}: {e}")
+                    sys.stderr.write(f"Failed to clear {file.name}: {e}\n")
                     sys.stderr.flush()
 
-        sys.stderr.write("Cleared previous session data")
+        sys.stderr.write("Cleared previous session data\n")
         sys.stderr.flush()
 
     def start(self):
-        sys.stderr.write("=" * 60)
+        sys.stderr.write("IntegrityWatch Native Host Started\n")
+        sys.stderr.write(f"Runtime directory: {self.runtime_dir}\n")
+        sys.stderr.write(f"PID: {os.getpid()}\n")
+        sys.stderr.write("Waiting for CLI to start monitoring...\n")
         sys.stderr.flush()
-        sys.stderr.write("IntegrityWatch Native Host Started")
-        sys.stderr.flush()
-        sys.stderr.write(f"Runtime directory: {self.runtime_dir}")
-        sys.stderr.flush()
-        sys.stderr.write(f"PID: {os.getpid()}")
-        sys.stderr.flush()
-        sys.stderr.write("=" * 60)
-        sys.stderr.flush()
-
+        
         self._running = True
         self._write_status("RUNNING")
-
+        
+        import time
+        last_command_check = 0
+        
         try:
             while self._running:
-                message = NativeMessagingProtocol.read_message()
-
-                if message is None:
-                    sys.stderr.write("Extension disconnected (stdin EOF)")
-                    sys.stderr.flush()
-                    break
-
-                self._route_message(message)
-
+                current_time = time.time()
+                if current_time - last_command_check > 1.0:
+                    self._check_command_file()
+                    last_command_check = current_time
+                
+                import select
+                if select.select([sys.stdin], [], [], 0.1)[0]:
+                    message = NativeMessagingProtocol.read_message()
+                    
+                    if message is None:
+                        sys.stderr.write("Extension disconnected (stdin EOF)\n")
+                        sys.stderr.flush()
+                        break
+                    
+                    self._route_message(message)
+                
         except KeyboardInterrupt:
-            sys.stderr.write("Native host interrupted by user")
+            sys.stderr.write("Native host interrupted by user\n")
             sys.stderr.flush()
         except Exception as e:
-            sys.stderr.write(f"Fatal error in main loop: {e}")
+            sys.stderr.write(f"Fatal error in main loop: {e}\n")
             sys.stderr.flush()
         finally:
             self._write_status('STOPPED')
-            sys.stderr.write("Native host shutting down")
+            sys.stderr.write("Native host shutting down\n")
             sys.stderr.flush()
 
     def _route_message(self, message: dict[str, Any]):
         msg_type = message.get('type', 'UNKNOWN')
-        sys.stderr.write(f"Received message type: {msg_type}")
+        sys.stderr.write(f"Received message type: {msg_type}\n")
         sys.stderr.flush()
 
         handler = self.message_handlers.get(msg_type)
@@ -133,52 +140,79 @@ class NativeHostHandler:
             try:
                 handler(message)
             except Exception as e:
-                sys.stderr.write(f"handler failed for {msg_type}: {e}")
+                sys.stderr.write(f"handler failed for {msg_type}: {e}\n")
                 sys.stderr.flush()
         else:
-            sys.stderr.write(f"Unknown message type: {msg_type}")
+            sys.stderr.write(f"Unknown message type: {msg_type}\n")
             sys.stderr.flush()
     
     def _handle_extension_ready(self, message: dict[str, Any]):
-        sys.stderr.write("Extension connected")
+        sys.stderr.write("Extension connected - waiting for CLI\n")
         sys.stderr.flush()
 
+    def _check_command_file(self):
+        if not self.command_file.exists():
+            return
+        
         try:
-            with open(self.config_file, 'r') as f:
-                self.config_data = json.load(f)
-                target_website = self.config_data.get('browser', {}).get('target_website', 'leetcode.com')
-        except:
-            target_website = 'leetcode.com'
-
-        response = {
-            'type': 'START_MONITORING',
-            'config': {
-                'interval': 5,
-                'targetWebsite': target_website,
-                'suspiciousDomains': [
-                    'meet.google.com',
-                    'teams.microsoft.com',
-                    'zoom.us',
-                    'discord.com',
-                    'slack.com',
-                    'whatsapp.com',
-                    'telegram.org',
-                    'messenger.com',
-                    'chat.google.com',
-                    'hangouts.google.com'
-                    'whereby.com',
-                    'jitsi.org',
-                    '8x8.vc',
-                    'webex.com'
-                ]
-            }
-        }
-
-        if NativeMessagingProtocol.send_message(response):
-            sys.stderr.write("Sent START_MONITORING command to extension")
-            sys.stderr.flush()
-        else:
-            sys.stderr.write("Failed to send START_MONITORING command")
+            with open(self.command_file, 'r') as f:
+                command_data = json.load(f)
+            
+            command = command_data.get('command')
+            
+            if command == 'START_MONITORING' and not self._monitoring_active:
+                sys.stderr.write("CLI STARTED - Initiating monitoring\n")
+                sys.stderr.flush()
+                
+                self._monitoring_active = True
+                
+                try:
+                    with open(self.config_file, 'r') as f:
+                        config_data = json.load(f)
+                    target_website = config_data.get('browser', {}).get('target_website', 'leetcode.com')
+                except:
+                    target_website = 'leetcode.com'
+                
+                response = {
+                    'type': 'START_MONITORING',
+                    'config': {
+                        'interval': 5,
+                        'targetWebsite': target_website,
+                        'suspiciousDomains': [
+                            'meet.google.com',
+                            'teams.microsoft.com',
+                            'zoom.us',
+                            'discord.com',
+                            'slack.com',
+                            'whatsapp.com',
+                            'telegram.org',
+                            'messenger.com',
+                            'chat.google.com',
+                            'hangouts.google.com',
+                            'whereby.com',
+                            'jitsi.org',
+                            '8x8.vc',
+                            'webex.com'
+                        ]
+                    }
+                }
+                
+                if NativeMessagingProtocol.send_message(response):
+                    sys.stderr.write("Sent START_MONITORING to extension\n")
+                    sys.stderr.flush()
+            
+            elif command == 'STOP_MONITORING':
+                sys.stderr.write("CLI STOPPED - Stopping monitoring\n")
+                sys.stderr.flush()
+                
+                self._monitoring_active = False
+                
+                NativeMessagingProtocol.send_message({'type': 'STOP_MONITORING'})
+            
+            self.command_file.unlink()
+            
+        except Exception as e:
+            sys.stderr.write(f"Error processing command: {e}\n")
             sys.stderr.flush()
 
     def _handle_heartbeat(self, message: dict[str, Any]):
@@ -200,18 +234,18 @@ class NativeHostHandler:
             suspicious_count = data.get('suspiciousTabCount', 0)
 
             if suspicious_count > 0:
-                sys.stderr.write(f"Heartbeat: {total_tabs} tabs, {suspicious_count} SUSPICIOUS")
+                sys.stderr.write(f"Heartbeat: {total_tabs} tabs, {suspicious_count} SUSPICIOUS\n")
                 sys.stderr.flush()
                 for tab in data.get('suspiciousTabs', []):
-                    sys.stderr.write(f"  → Suspicious: {tab.get('url', 'unknown')}")
+                    sys.stderr.write(f"  → Suspicious: {tab.get('url', 'unknown')}\n")
                     sys.stderr.flush()
                 
             else:
-                sys.stderr.write(f"Heartbeat: {total_tabs} tabs, {suspicious_count} suspicious")
+                sys.stderr.write(f"Heartbeat: {total_tabs} tabs, {suspicious_count} suspicious\n")
                 sys.stderr.flush()
 
         except Exception as e:
-            sys.stderr.write(f"Failed to write heartbeat: {e}")
+            sys.stderr.write(f"Failed to write heartbeat: {e}\n")
             sys.stderr.flush()
 
     def _handle_violation(self, message: dict[str, Any]):
@@ -237,37 +271,31 @@ class NativeHostHandler:
             with open(self.violations_file, 'w') as f:
                 json.dump(violations, f, indent=2)
             
-            sys.stderr.write("=" * 60)
-            sys.stderr.flush()
-            sys.stderr.write(f"VIOLATION DETECTED: {violation_type}")
-            sys.stderr.flush()
-            sys.stderr.write(f"Timestamp: {datetime.fromtimestamp(timestamp/1000).isoformat()}")
-            sys.stderr.flush()
+            sys.stderr.write(f"VIOLATION DETECTED: {violation_type}\n")
+            sys.stderr.write(f"Timestamp: {datetime.fromtimestamp(timestamp/1000).isoformat()}\n")
           
             if violation_type == 'SCREEN_SHARE_DETECTED':
-                sys.stderr.write(f"URL: {details.get('url', 'N/A')}")
+                sys.stderr.write(f"URL: {details.get('url', 'N/A')}\n")
                 sys.stderr.flush()
-                sys.stderr.write(f"Tab: {details.get('title', 'N/A')}")
+                sys.stderr.write(f"Tab: {details.get('title', 'N/A')}\n")
                 sys.stderr.flush()
-                sys.stderr.write(f"Constraints: {details.get('constraints', {})}")
+                sys.stderr.write(f"Constraints: {details.get('constraints', {})}\n")
                 sys.stderr.flush()
             elif 'TAB' in violation_type:
-                sys.stderr.write(f"URL: {details.get('url', 'N/A')}")
+                sys.stderr.write(f"URL: {details.get('url', 'N/A')}\n")
                 sys.stderr.flush()
-                sys.stderr.write(f"Tab ID: {details.get('tabId', 'N/A')}")
+                sys.stderr.write(f"Tab ID: {details.get('tabId', 'N/A')}\n")
                 sys.stderr.flush()
-                sys.stderr.write(f"Title: {details.get('title', 'N/A')}")
+                sys.stderr.write(f"Title: {details.get('title', 'N/A')}\n")
                 sys.stderr.flush()
             
-            sys.stderr.write("=" * 60)
-            sys.stderr.flush()
             
         except Exception as e:
-            sys.stderr.write(f"Failed to write violation: {e}")
+            sys.stderr.write(f"Failed to write violation: {e}\n")
             sys.stderr.flush()
         
     def _handle_pong(self, message: dict[str, Any]):
-        sys.stderr.write("Received PONG from extension")
+        sys.stderr.write("Received PONG from extension\n")
         sys.stderr.flush()
     
     def _handle_screen_share_stopped(self, message: dict[str, Any]):
@@ -275,7 +303,7 @@ class NativeHostHandler:
         tab_id = data.get('tabId', 'unknown')
         url = data.get('url', 'unknown')
         
-        sys.stderr.write(f"Screen sharing stopped: Tab {tab_id} ({url})")
+        sys.stderr.write(f"Screen sharing stopped: Tab {tab_id} ({url})\n")
         sys.stderr.flush()
 
     
@@ -290,11 +318,11 @@ class NativeHostHandler:
             with open(self.status_file, 'w') as f:
                 json.dump(status_data, f, indent=2)
             
-            sys.stderr.write(f"Status updated: {status}")
+            sys.stderr.write(f"Status updated: {status}\n")
             sys.stderr.flush()
                 
         except Exception as e:
-            sys.stderr.write(f"Failed to write status: {e}")
+            sys.stderr.write(f"Failed to write status: {e}\n")
             sys.stderr.flush()
 
 

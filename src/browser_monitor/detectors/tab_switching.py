@@ -75,7 +75,7 @@ class TabSwitchingDetector(BaseDetector):
     def _categorize_url(self, url: str) -> str:
         url_lower = url.lower()
         
-        for category, patterns in self.URL_CATEGORIES.items():
+        for category, patterns in URL_CATEGORIES.items():
             for pattern in patterns:
                 if pattern in url_lower:
                     return category

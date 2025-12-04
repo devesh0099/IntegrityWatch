@@ -2,7 +2,6 @@ const NATIVE_HOST_NAME = 'com.integritywatch.host';
 const HEARTBEAT_INTERVAL = 5000
 
 let TARGET_WEBSITE = 'leetcode.com';
-let extensionScanDone = false;
 
 let SUSPICIOUS_DOMAINS = [
     'meet.google.com',
@@ -365,9 +364,7 @@ function hasHighRiskPermissions(extension) {
   return riskyPerms;
 }
 
-async function scanInstalledExtensions() {
-  if (extensionScanDone) return;
-  
+async function scanInstalledExtensions() {  
   try {
     const extensions = await chrome.management.getAll();
     console.log(`[IntegrityWatch] Scanning ${extensions.length} extensions for ${TARGET_WEBSITE}`);
@@ -406,7 +403,6 @@ async function scanInstalledExtensions() {
       }
     }
     
-    extensionScanDone = true;
     console.log('[IntegrityWatch] Extension scan complete');
     
   } catch (error) {

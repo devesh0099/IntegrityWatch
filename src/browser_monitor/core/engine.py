@@ -106,7 +106,7 @@ class DetectionEngine:
 
         report.total_violations = sum(v.count for v in report.violations if v.detected)
         report.exam_duration_minutes = self._calculate_duration()
-        
+
         self._apply_logic(report)
         self._last_violation_count = len(self.raw_violations)
 
@@ -116,19 +116,22 @@ class DetectionEngine:
         result = DetectionResult()
         result.session_id = self.browser_dir.name
         
-        if not self.load_data():
+        if not self.load_data():            
+            result.verdict = "SKIPPED"
+            result.reason = "Waiting for browser monitoring to start"
             return result
-        
-        if len(self.raw_violations) == self._last_violation_count:
+                
+        if len(self.raw_violations) == self._last_violation_count:            
+            result.verdict = "SKIPPED"
+            result.reason = "No new activity"
             return result
         
         self._last_violation_count = len(self.raw_violations)
-        
         for detector in self.detectors:
             if detector.name not in self._successful_detector_names:
                 continue
-            
-            tech_result = detector.safe_monitor()
+                        
+            tech_result = detector.safe_scan()
             tech_result.severity = self.SEVERITY_MAPPING.get(tech_result.name, "LOW")
             
             if tech_result.detected:
@@ -140,20 +143,20 @@ class DetectionEngine:
                     result.medium_violations += 1
                 elif tech_result.severity == "LOW":
                     result.low_violations += 1
-            
-            result.violations.append(tech_result)
+                
+                result.violations.append(tech_result)
         
         result.total_violations = sum(v.count for v in result.violations if v.detected)
         result.exam_duration_minutes = self._calculate_duration()
-        
+
         self._apply_logic(result)
-        
+                
         for violation in result.violations:
-            if violation.detected and violation.name not in self.current_violations:
+            if violation.detected:
                 self.current_violations[violation.name] = violation
         
         return result
-    
+
     def _calculate_duration(self) -> float:
         if not self.raw_violations:
             return 0.0
@@ -175,9 +178,9 @@ class DetectionEngine:
         critical_detected = report.critical_violations > 0
         high_detected = report.high_violations > 0
         medium_detected = report.medium_violations > 0
-     
+        
         allow_suspicious_websites = config.get("browser", "allow_suspicious_websites", False)
-        allow_suspicious_extensions = config.get("browser", "allow_suspicious_extensions", False) 
+        allow_suspicious_extensions = config.get("browser", "allow_suspicious_extensions", False)
         
         is_screen_share = any(
             v.name == "Screen Sharing Detection" and v.detected
@@ -188,49 +191,62 @@ class DetectionEngine:
             v.name == "Malicious Extension Detection" and v.detected
             for v in report.violations
         )
-
+        
         is_dom_manipulation = any(
             v.name == "DOM Manipulation Detection" and v.detected
             for v in report.violations
         )
         
-        if critical_detected:
-            if is_screen_share:
-                report.verdict = VERDICT_BLOCK
-                report.reason = "Screen Sharing Detected (Critical)"
-            elif is_dom_manipulation:
-                report.verdict = VERDICT_BLOCK
-                report.reason = "DOM manipulation detected by extension."
-            elif is_malicious_extension and not allow_suspicious_extensions:
-                report.verdict = VERDICT_BLOCK
-                report.reason = "Malicious Extension Detected with Dangerous Permissions (Critical)"
-            elif is_malicious_extension and allow_suspicious_extensions:
-                report.verdict = VERDICT_FLAG
-                report.reason = "Suspicious Extension Detected (Manual Review Required)"
+        is_tab_switching = any(
+            v.name == "Tab Switching Detection" and v.detected
+            for v in report.violations
+        )
+        
+        flag_count = 0
+        block_reasons = []
+        
+        if is_screen_share:
+            block_reasons.append("Screen Sharing Detected (Critical)")
+        
+        if is_dom_manipulation:
+            block_reasons.append("DOM manipulation detected by extension")
+        
+        if is_malicious_extension:
+            if not allow_suspicious_extensions:
+                block_reasons.append("Malicious Extension Detected with Dangerous Permissions (Critical)")
             else:
-                report.verdict = VERDICT_BLOCK
-                report.reason = "Critical Violation Detected"
+                flag_count += 1
         
-        elif high_detected and not allow_suspicious_websites:
+        if is_tab_switching:
+            if not allow_suspicious_websites:
+                block_reasons.append("High-Severity Violations (Communication Apps)")
+            else:
+                flag_count += 1
+        
+        if medium_detected and report.total_violations >= 10:
+            flag_count += 1
+        
+        if block_reasons:
             report.verdict = VERDICT_BLOCK
-            report.reason = "High-Severity Violations (Communication Apps)"
-        
-        elif high_detected and allow_suspicious_websites:
+            report.reason = ", ".join(block_reasons)
+        elif flag_count > 0:
             report.verdict = VERDICT_FLAG
-            report.reason = "Suspicious Tab Activity Detected (Manual Review Required)"
-        
-        elif medium_detected and report.total_violations >= 10:
-            report.verdict = VERDICT_FLAG
-            report.reason = "Excessive Tab Switching (Manual Review Required)"
-        
+            if flag_count == 1:
+                if is_malicious_extension and allow_suspicious_extensions:
+                    report.reason = "Suspicious Extension Detected (Manual Review Required)"
+                elif is_tab_switching and allow_suspicious_websites:
+                    report.reason = "Suspicious Tab Activity Detected (Manual Review Required)"
+                else:
+                    report.reason = "Suspicious Activity Detected (Manual Review Required)"
+            else:
+                report.reason = f"Multiple violations detected ({flag_count} types) - Manual Review Required"
         elif medium_detected:
             report.verdict = VERDICT_PASS
             report.reason = "Minor Violations Within Acceptable Limits"
-        
         else:
             report.verdict = VERDICT_PASS
             report.reason = "Clean exam session - no violations detected"
-    
+
     def _to_heartbeat_dict(self, report: DetectionResult) -> dict:
         return {
             "module": "browser_monitor",

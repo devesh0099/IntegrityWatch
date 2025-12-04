@@ -43,7 +43,7 @@ class DetectionEngine:
             if tech_result.error == None:
                 self._successful_detector_names.add(tech_result.name)
             
-            tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
+            # tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
 
             if tech_result.detected:
                 if tech_result.tier == "CRITICAL":
@@ -75,7 +75,7 @@ class DetectionEngine:
                 continue
             
             tech_result = detector.safe_monitor()
-            tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
+            # tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
             
             if tech_result.detected:
                 if tech_result.tier == "CRITICAL":
