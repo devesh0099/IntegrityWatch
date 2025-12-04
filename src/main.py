@@ -4,6 +4,7 @@ import os
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+import time
 
 from src.config import config
 from src.utils.logger import setup_logging, get_logger
@@ -258,7 +259,8 @@ def main():
                     logger.debug(f"Removed old file: {file}")
                 except Exception as e:
                     logger.warning(f"Could not remove {file}: {e}")
-
+        
+        time.sleep(0.1) # For combatting some time issues
         command_file = browser_dir / 'command.json'
         try:
             with open(command_file, 'w') as f:
