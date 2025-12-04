@@ -91,10 +91,10 @@ class SMBIOSDetector(BaseDetector):
                     )
             
             # Checking if HPET table exist or not.
-            if not self.found_hpet:
+            if not self.found_hpet: # Encountered False Positive
                 return TechniqueResult(
                     name=self.name,
-                    detected=True,
+                    detected=False,
                     details="HPET ACPI table absent"
                 )
             

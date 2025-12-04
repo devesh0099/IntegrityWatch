@@ -23,7 +23,9 @@ DEFAULT_CONFIG = {
         "allow_conference_tools": True
     },
     "browser": {
-        "allow_suspicious_websites": False
+        "allow_suspicious_websites": False,
+        "allow_suspicious_extensions": False,
+        "target_website": "leetcode.com"
     }
 }
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "IntegrityWatch"
 version = "0.1.0"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.11,<3.14"
 description = "IntegrityWatch project"
 authors = [
   { name = "Devesh Bhushan", email = "deveshbhushan7@gmail.com" }
