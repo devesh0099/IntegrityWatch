@@ -52,9 +52,11 @@ class NativeMessagingProtocol:
         
 
 class NativeHostHandler:
-    def __init__(self, runtime_dir: Path):
+    def __init__(self, runtime_dir: Path, config_file: Path):
         self.runtime_dir = runtime_dir
         self.runtime_dir.mkdir(parents=True, exist_ok=True)
+
+        self.config_file = config_file
 
         self.violations_file = runtime_dir / 'violations.json'
         self.heartbeat_file = runtime_dir / 'heartbeat.json'
@@ -141,15 +143,29 @@ class NativeHostHandler:
         sys.stderr.write("Extension connected")
         sys.stderr.flush()
 
+        try:
+            with open(self.config_file, 'r') as f:
+                self.config_data = json.load(f)
+                target_website = self.config_data.get('browser', {}).get('target_website', 'leetcode.com')
+        except:
+            target_website = 'leetcode.com'
+
         response = {
             'type': 'START_MONITORING',
             'config': {
                 'interval': 5,
+                'targetWebsite': target_website,
                 'suspiciousDomains': [
                     'meet.google.com',
                     'teams.microsoft.com',
                     'zoom.us',
                     'discord.com',
+                    'slack.com',
+                    'whatsapp.com',
+                    'telegram.org',
+                    'messenger.com',
+                    'chat.google.com',
+                    'hangouts.google.com'
                     'whereby.com',
                     'jitsi.org',
                     '8x8.vc',
@@ -285,8 +301,9 @@ class NativeHostHandler:
 def main():
     project_root = Path(__file__).parent.parent.parent.parent
     runtime_dir = project_root / 'runtime' / 'browser'
+    config_file = project_root / 'config' / 'settings.json'
 
-    handler = NativeHostHandler(runtime_dir)
+    handler = NativeHostHandler(runtime_dir, config_file)
     handler.start()
 
 if __name__ == '__main__':

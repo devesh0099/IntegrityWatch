@@ -10,7 +10,8 @@
     "webNavigation",
     "nativeMessaging",
     "alarms",
-    "scripting"
+    "scripting",
+    "management"
   ],
   
   "host_permissions": [
@@ -27,16 +28,15 @@
       "js": ["content.js"],
       "run_at": "document_start",
       "all_frames": false
-    }
-  ],
-  
-  "web_accessible_resources": [
+    },
     {
-      "resources": ["injected.js"],
-      "matches": ["<all_urls>"]
+      "matches": ["*://*.leetcode.com/*"],
+      "js": ["leetcode_monitor.js"],
+      "run_at": "document_start",
+      "all_frames": false
     }
   ],
-  
+
   "icons": {
     "16": "icon16.svg",
     "48": "icon48.svg",

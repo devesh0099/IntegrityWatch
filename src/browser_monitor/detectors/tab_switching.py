@@ -2,22 +2,21 @@ from collections import Counter
 from .base import BaseDetector
 from ..core.result import TechniqueResult
 
+URL_CATEGORIES = {
+    'communication': [
+        'meet.google.com', 'teams.microsoft.com', 'zoom.us',
+        'discord.com', 'slack.com', 'whatsapp.com', 'telegram.org',
+        'messenger.com', 'chat.google.com', 'hangouts.google.com'
+    ],
+    'search': [
+        'google.com/search', 'bing.com/search', 'duckduckgo.com'
+    ],
+    'social': [
+        'facebook.com', 'twitter.com', 'instagram.com', 'reddit.com'
+    ]
+}
+
 class TabSwitchingDetector(BaseDetector):
-    
-    URL_CATEGORIES = {
-        'communication': [
-            'meet.google.com', 'teams.microsoft.com', 'zoom.us',
-            'discord.com', 'slack.com', 'whatsapp.com', 'telegram.org',
-            'messenger.com', 'chat.google.com', 'hangouts.google.com'
-        ],
-        'search': [
-            'google.com/search', 'bing.com/search', 'duckduckgo.com'
-        ],
-        'social': [
-            'facebook.com', 'twitter.com', 'instagram.com', 'reddit.com'
-        ]
-    }
-    
     def __init__(self):
         super().__init__(
             name="Tab Switching Detection"

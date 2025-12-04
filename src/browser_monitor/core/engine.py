@@ -12,9 +12,13 @@ from ...utils.logger import get_logger
 from ..detectors.base import BaseDetector
 from ..detectors.screen_share import ScreenShareDetector
 from ..detectors.tab_switching import TabSwitchingDetector
+from ..detectors.malicious_extension import MaliciousExtensionDetector
+from ..detectors.dom_manipulation import DOMManipulationDetector
 
 SEVERITY_MAPPING = {
     "Screen Sharing Detection": "CRITICAL",
+    "Malicious Extension Detection": "CRITICAL",
+    "DOM Manipulation Detection": "CRITICAL",
     "Tab Switching Detection": "HIGH"
 }
 
@@ -46,7 +50,9 @@ class DetectionEngine:
     def _load_detectors(self) -> list[BaseDetector]:
         return [
             ScreenShareDetector(),
-            TabSwitchingDetector()
+            TabSwitchingDetector(),
+            MaliciousExtensionDetector(),
+            DOMManipulationDetector()
         ]
     
     def load_data(self) -> bool:
@@ -163,25 +169,46 @@ class DetectionEngine:
     def _apply_logic(self, report: DetectionResult):
         if not report.violations:
             report.verdict = "SKIPPED"
-            report.reason = "No detector were active."
+            report.reason = "No detectors were active."
             return
         
         critical_detected = report.critical_violations > 0
         high_detected = report.high_violations > 0
         medium_detected = report.medium_violations > 0
-
+     
         allow_suspicious_websites = config.get("browser", "allow_suspicious_websites", False)
+        allow_suspicious_extensions = config.get("browser", "allow_suspicious_extensions", False) 
+        
+        is_screen_share = any(
+            v.name == "Screen Sharing Detection" and v.detected
+            for v in report.violations
+        )
+        
+        is_malicious_extension = any(
+            v.name == "Malicious Extension Detection" and v.detected
+            for v in report.violations
+        )
+
+        is_dom_manipulation = any(
+            v.name == "DOM Manipulation Detection" and v.detected
+            for v in report.violations
+        )
+        
         if critical_detected:
-            report.verdict = VERDICT_BLOCK
-            
-            is_screen_share = any(
-                v.name == "Screen Sharing Detection" and v.detected 
-                for v in report.violations
-            )
-            
             if is_screen_share:
+                report.verdict = VERDICT_BLOCK
                 report.reason = "Screen Sharing Detected (Critical)"
+            elif is_dom_manipulation:
+                report.verdict = VERDICT_BLOCK
+                report.reason = "DOM manipulation detected by extension."
+            elif is_malicious_extension and not allow_suspicious_extensions:
+                report.verdict = VERDICT_BLOCK
+                report.reason = "Malicious Extension Detected with Dangerous Permissions (Critical)"
+            elif is_malicious_extension and allow_suspicious_extensions:
+                report.verdict = VERDICT_FLAG
+                report.reason = "Suspicious Extension Detected (Manual Review Required)"
             else:
+                report.verdict = VERDICT_BLOCK
                 report.reason = "Critical Violation Detected"
         
         elif high_detected and not allow_suspicious_websites:
