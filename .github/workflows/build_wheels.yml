@@ -1,34 +1,55 @@
-name: Build Windows Wheels
+name: Build cpuid Wheels for Windows
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger
   push:
-    branches: [ main ]
+    branches: [ main, master ]
+    paths:
+      - '.github/workflows/build-cpuid-wheels.yml'
+  release:
+    types: [created]
 
 jobs:
-  build-windows:
+  build-windows-wheels:
+    name: Build Windows Wheels (Python ${{ matrix.python-version }})
     runs-on: windows-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
+    
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ matrix.python-version }}
       
-      - name: Install wheel
+      - name: Display Python version
+        run: python --version
+      
+      - name: Install wheel package
         run: pip install wheel
       
       - name: Build cpuid-native wheel
-        run: pip wheel cpuid-native --no-deps -w wheels/
+        run: |
+          pip wheel cpuid-native --no-deps -w wheels/
       
       - name: Build cpuid wheel
-        run: pip wheel cpuid --no-deps -w wheels/
+        run: |
+          pip wheel cpuid --no-deps -w wheels/
       
-      - name: Upload artifacts
+      - name: List built wheels
+        run: |
+          dir wheels\
+      
+      - name: Upload wheels as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: windows-wheels-py311
+          name: cpuid-wheels-win-py${{ matrix.python-version }}
           path: wheels/*.whl
           retention-days: 90
+          if-no-files-found: error
