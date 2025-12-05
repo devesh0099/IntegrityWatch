@@ -39,6 +39,7 @@ class DetectionEngine:
         # Running all detectors
         for detector in self.detectors:
             tech_result = detector.safe_scan()
+            tech_result.tier = self.TIER_MAPPING.get(tech_result.name, "LOW")
             
             if tech_result.error == None:
                 self._successful_detector_names.add(tech_result.name)

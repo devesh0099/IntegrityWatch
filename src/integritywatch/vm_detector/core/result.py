@@ -70,6 +70,9 @@ class DetectionResult:
             else:
                 status_color = GREEN
                 status_text = "PASS"
+            
+            if tech.error == "Platform not supported":
+                continue
 
             tier_color = PURPLE if tech.tier == "CRITICAL" else (YELLOW if tech.tier == "HIGH" else CYAN)
 

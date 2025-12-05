@@ -76,6 +76,9 @@ class DetectionResult:
                 status_color = GREEN
                 status_text = "PASS"
 
+            if tech.error == "Platform not supported":
+                continue
+
             tier_color = PURPLE if tech.tier == "CRITICAL" else (YELLOW if tech.tier == "HIGH" else CYAN)
 
             print(f"[{tier_color}{tech.tier:^8}{RESET}] {tech.name:<35} [{status_color}{status_text:^8}{RESET}]")
