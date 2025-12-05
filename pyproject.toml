@@ -10,6 +10,10 @@ readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = {text = "MIT"}
 
+authors = [
+  { name = "Devesh Bhushan", email = "deveshbhushan7@gmail.com" }
+]
+
 dependencies = [
     "colorama>=0.4.6",
     "wmi>=1.5.1; sys_platform == 'win32'",
