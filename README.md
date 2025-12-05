@@ -65,7 +65,7 @@ integritywatch-install-extension
 ```bash
 integritywatch-install-extension.exe
 ```
-
+_(NOTE: Run the program from the same local directory)_
 This will install the extension support for the Browser Monitoring. (Run as Admin on windows)
 
 ### 4. Loading the browser extension.
