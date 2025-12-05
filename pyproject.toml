@@ -3,19 +3,36 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "IntegrityWatch"
+name = "integritywatch"
 version = "0.1.0"
+description = "Exam proctoring system with VM and browser monitoring"
+readme = "README.md"
 requires-python = ">=3.11,<3.14"
-description = "IntegrityWatch project"
-authors = [
-  { name = "XXXXX", email = "XXXX@gmail.com" }
-]
+license = {text = "MIT"}
 
 dependencies = [
-    "wmi",
-    "cpuid",
-    "colorama",
+    "colorama>=0.4.6",
+    "wmi>=1.5.1; sys_platform == 'win32'",
 ]
+
+[project.optional-dependencies]
+windows = [
+    "cpuid-native @ file:///${PROJECT_ROOT}/wheels/cpuid_native-0.1.1-cp311-cp311-win_amd64.whl ; python_version=='3.11' and sys_platform=='win32'",
+    "cpuid-native @ file:///${PROJECT_ROOT}/wheels/cpuid_native-0.1.1-cp312-cp312-win_amd64.whl ; python_version=='3.12' and sys_platform=='win32'",
+    "cpuid-native @ file:///${PROJECT_ROOT}/wheels/cpuid_native-0.1.1-cp313-cp313-win_amd64.whl ; python_version=='3.13' and sys_platform=='win32'",
+]
+
+linux = [
+    "cpuid; sys_platform!='win32'",
+]
+
+[project.scripts]
+integritywatch = "integritywatch.cli:main_wrapper"
+integritywatch-install-extension = "integritywatch.cli:install_wrapper"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"integritywatch.browser_monitor.extension" = ["**/*"]
+"integritywatch" = ["../wheels/*.whl"]

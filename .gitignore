@@ -3,6 +3,9 @@
 test
 __pycache__
 src/IntegrityWatch.egg-info/
+IntegrityWatch.egg-info
+integritywatch.egg-info
+build/
 
 # Per user generated Files
 logs
