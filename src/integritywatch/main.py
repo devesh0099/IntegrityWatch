@@ -239,8 +239,8 @@ def main():
         remote_result, remote_engine = RemoteEngine()
         
         logger.info("Running Browser Tab Detection Module...")
-
-        browser_dir = Path("runtime/browser")
+        
+        browser_dir = Path.home() / ".integritywatch" / "runtime" / "browser"
         browser_dir.mkdir(parents=True, exist_ok=True)
 
         logger.info("Writing Start Command for Native Host")

@@ -49,18 +49,53 @@ pipx install .
 ### 2. On Windows
 
 ```bash
-pipx install ".[windows]"
+pipx install .
+pipx runpip integritywatch install --no-index --find-links=wheels cpuid==0.1.1 cpuid-native==0.1.1
+```
+_(Note: If the [windows] prefix is not utilized, a single detection technique will fail gracefully; however, all other program features will remain fully functional.)_
+
+
+### 3. Installation of native bridge
+
+- **Linux/macOS**
+```bash
+integritywatch-install-extension
+```
+- **Windows**
+```bash
+integritywatch-install-extension.exe
 ```
 
-_(Note: If the [windows] prefix is not utilized, a single detection technique will fail gracefully; however, all other program features will remain fully functional.)_
+This will install the extension support for the Browser Monitoring. (Run as Admin on windows)
+
+### 4. Loading the browser extension.
+
+To load the extension:
+
+1. Open any Chromium-based browser
+2. Navigate to the extensions page:
+   - Edge: `edge://extensions`
+   - Chrome: `chrome://extensions`
+   - Brave: `brave://extensions`
+3. Enable **Developer Mode** (toggle in top-right corner)
+4. Click **Load unpacked**
+5. Navigate to: `<clone-directory>/src/integritywatch/browser_monitor/extension`
+6. Select the folder
+
 ## Usage
 
 ### Scan
 
 To run a full environment check:
 
+- On **Linux/macOS**
 ```bash
 integritywatch
+```
+
+- On **Windows**
+```bash
+integritywatch.exe
 ```
 
 This runs all engines VM, Remote Access, and Browser and prints a summary.

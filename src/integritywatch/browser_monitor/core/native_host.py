@@ -10,6 +10,9 @@ import threading
 import queue
 import time
 
+RUNTIME_DIR = Path.home() / ".integritywatch" / "runtime" / "browser"
+RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+
 class NativeMessagingProtocol:
     @staticmethod
     def read_message() -> Optional[dict[str, Any]]:
@@ -356,7 +359,7 @@ def main():
     from pathlib import Path
     
     try:
-        potential_root = Path(__file__).parent.parent.parent.parent
+        potential_root = RUNTIME_DIR
         if (potential_root / 'runtime').exists():
             project_root = potential_root
         else:
