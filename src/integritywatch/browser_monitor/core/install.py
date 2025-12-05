@@ -152,16 +152,14 @@ def main():
     print("IntegrityWatch Native Host Installer")
     print()
 
-    if not _has_admin_privileges():
-        if is_windows():
-            print("ERROR: This installer must be run as Administrator.")
-            print()
-            print("Instructions (Windows):")
-            print("  1. Close this window.")
-            print("  2. Open PowerShell as Administrator.")
-            print("  3. Run: integritywatch-install-extension")
+    if not _has_admin_privileges() and is_windows():
+        print("ERROR: This installer must be run as Administrator.")
+        print()
+        print("Instructions (Windows):")
+        print("  1. Close this window.")
+        print("  2. Open PowerShell as Administrator.")
+        print("  3. Run: integritywatch-install-extension")
         sys.exit(1)
-
     try:
         installer = NativeHostInstaller()
         results = installer.install()

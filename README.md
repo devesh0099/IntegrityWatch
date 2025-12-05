@@ -37,7 +37,7 @@ _(Note: After running `ensurepath`, restart the terminal for effect to take pla
 
 ```bash
 git clone https://github.com/devesh0099/IntegrityWatch.git
-cd integritywatch
+cd IntegrityWatch
 ```
 
 ### 1. On Linux / macOS
