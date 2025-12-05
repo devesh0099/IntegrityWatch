@@ -14,54 +14,24 @@ Built for the IICPC Dev Intern Competition.
 ## Prerequisites
 
 * **Python**: 3.11, 3.12, or 3.13 (Required)
-* **OS**: Windows 10/11 (x64), modern Linux (x86_64), macOS 
+* **OS**: Windows 10/11 (x64), modern Linux (x86_64), macOS (x86_64) [Arm based devices only support Process Detection and Browser Monitoring]
 * **Browsers**: Chrome, Edge, Brave, or other Chromium-based browsers. 
 _(For Browser monitoring)_
 
 ### How to Install pipx (if not installed)
+_(Note: Python verison should be a supported one i.e. 3.11,3.12 or 3.13)_
 
-- **Windows:** `py -m pip install --user pipx` followed by `py -m pipx ensurepath`
-- **macOS:** `brew install pipx` followed by `pipx ensurepath`
-- **Linux (Fedora):** `sudo dnf install pipx` followed by `pipx ensurepath`
-- **Linux (Ubuntu/Debian):** `sudo apt install pipx` followed by `pipx ensurepath`
-    
-_(Note: After running `ensurepath`, you need to close and reopen your terminal)._
+#### **Windows:** 
+    1. `python -m pip install --user pipx` 
+    2. `python -m pipx ensurepath`
+
+#### **Linux/macOS:**
+    1. `python3 -m pip install --user pipx`
+    2. `pipx ensurepath`
+
+_(Note: After running `ensurepath`, restart the terminal for effect to take place)._
 
 ## Installation
-
-### 1. Windows Installation (Recommended)
-
-On Windows, we rely on a specific native CPUID library to get accurate hardware readings. You **must** install with the `[windows]` extra to ensure the correct pre-built wheels are pulled in.
-
-```powershell
-pipx install "git+https://github.com/devesh0099/IntegrityWatch.git#egg=integritywatch[windows]"
-```
-
-
-### 2. Linux/macOS Installation
-
-Linux and macOS have pre-built binaries avaialable.
-
-```bash
-pipx install "git+https://github.com/devesh0099/IntegrityWatch.git"
-```
-
-### 3. Browser Extension Setup
-
-After the CLI tool is installed, you need to register the "Native Host", the bridge that lets our Python code talk to the browser. We built a simple helper command for this:
-
-```bash
-integritywatch-install-extension
-```
-
-* **Windows**: This will set up the necessary Registry keys, hence required to "Run as a Administrator"
-* **Linux/macOS**: This writes the manifest files to your browser's configuration directory.
-
-Once that's done, ensure the IntegrityWatch extension is loaded in your browser (e.g., via `chrome://extensions/` in Developer Mode pointing to the `browser_monitor/extension` folder located under `src/integritywatch`).
-
-## Fallback installation
-
-If the installation fails try to do it manually
 
 - Copying from source
 
