@@ -93,7 +93,7 @@ To run a full environment check:
 integritywatch
 ```
 
-This runs all engines—VM, Remote Access, and Browser—and prints a summary.
+This runs all engines VM, Remote Access, and Browser and prints a summary.
 
 * **PASS (Green)**: System is clean.
 * **FLAG (Yellow)**: Suspicious artifacts found (e.g., suspicious website or extension is allowed), but can also be a false positive.
@@ -122,4 +122,5 @@ Settings of the tool can tweak by editing `config/settings.json` (generated afte
 ## License
 
 MIT License. See `LICENSE` for details.
+
 
