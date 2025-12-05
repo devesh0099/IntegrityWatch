@@ -17,6 +17,7 @@ authors = [
 dependencies = [
     "colorama>=0.4.6",
     "wmi>=1.5.1; sys_platform == 'win32'",
+    "cpuid; sys_platform != 'win32'"
 ]
 
 [project.optional-dependencies]
@@ -24,10 +25,6 @@ windows = [
     "cpuid-native @ file:///${PROJECT_ROOT}/wheels/cpuid_native-0.1.1-cp311-cp311-win_amd64.whl ; python_version=='3.11' and sys_platform=='win32'",
     "cpuid-native @ file:///${PROJECT_ROOT}/wheels/cpuid_native-0.1.1-cp312-cp312-win_amd64.whl ; python_version=='3.12' and sys_platform=='win32'",
     "cpuid-native @ file:///${PROJECT_ROOT}/wheels/cpuid_native-0.1.1-cp313-cp313-win_amd64.whl ; python_version=='3.13' and sys_platform=='win32'",
-]
-
-linux = [
-    "cpuid; sys_platform!='win32'",
 ]
 
 [project.scripts]
