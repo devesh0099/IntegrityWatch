@@ -6,7 +6,7 @@ Built for the IICPC Dev Intern Competition.
 
 ## Key Features
 
-* **VM \& Sandbox Detection**: We don't just check process names. We look deep—CPUID hypervisor bits, firmware tables, MAC addresses, and kernel objects—to catch VMs trying to hide.
+* **VM \& Sandbox Detection**: We don't just check process names. We look deep CPUID hypervisor bits, firmware tables, MAC addresses, and kernel objects to catch VMs trying to hide.
 * **Remote Access Monitoring**: Scans for commercial remote control tools (TeamViewer, AnyDesk), checks for suspicious network connections, and monitors RDP sessions.
 * **Browser Integrity**: Uses a custom native host bridge to talk to a browser extension, letting us detect tab switching, large copy-pastes, and banned sites during the exam.
 * **Automated Reporting**: Spits out clean JSON reports and heartbeat logs, making it easy to integrate with backend grading systems.
@@ -115,10 +115,11 @@ It will generate "heartbeat" files in the `results/` folder, which serve as proo
 
 Settings of the tool can tweak by editing `config/settings.json` (generated after the first run).
 
-* **`monitoring_interval`**: How often (in seconds) to re-check the system.
+* **`monitoring_interval`**: How often (in seconds) to recheck the system.
 * **`remote_access`**: Whitelist specific conferencing tools if needed.
 * **`browser`**: Configure allowed websites or extensions.
 
 ## License
 
 MIT License. See `LICENSE` for details.
+
