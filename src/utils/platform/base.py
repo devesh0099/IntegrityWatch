@@ -20,46 +20,31 @@ def get_cpuid_registers(leaf: int) -> tuple:
     except:
         return (0,0,0,0)
 
-def get_cpu_vendor() -> str:
-    # Get CPUID vendor string from EBX+ECX+EDX at specified leaf.
-    try:
-        from cpuid import cpuid
-        import struct
-
-        eax, ebx, ecx, edx = cpuid(0)
-
-        # Packing into bytes
-        vendor_bytes = struct.pack('<III', ebx,edx,ecx)
-
-        # Converting to ASCII string
-        vendor_str = vendor_bytes.decode('ascii', errors='replace')
-
-        return vendor_str.rstrip('\x00') # Removing NULL terminator
-    
-    except Exception:
-        return ""
-    
-
-def get_hypervisor_vendor(leaf: int = 0x40000000) -> str:
+def get_cpuid_vendor(leaf: int) -> str:
     try:
         from cpuid import cpuid
         import struct
         
         eax, ebx, ecx, edx = cpuid(leaf)
         
-        # Hypervisor leaves use EBX + ECX + EDX order
-        vendor_bytes = struct.pack('<III', ebx, ecx, edx)
-        vendor_str = vendor_bytes.decode('ascii', errors='replace')
-        return vendor_str.rstrip('\x00')
-        
-    except Exception:
-        return ""
-
-def get_cpuid_vendor(leaf: int) -> str:
-    if leaf == 0:
-        return get_cpu_vendor()
-    else:
-        return get_hypervisor_vendor(leaf)
+        if leaf == 0:
+            vendor = struct.pack('<III', ebx, edx, ecx).decode('ascii', errors='ignore')
+            return vendor.strip()
+        else:
+            vendor1 = struct.pack('<III', ebx, ecx, edx).decode('ascii', errors='ignore').strip()
+            
+            if vendor1 and len(vendor1) >= 3:
+                if not all(c in '@\x00 ' for c in vendor1):
+                    return vendor1
+            
+            vendor2 = struct.pack('<III', ebx, edx, ecx).decode('ascii', errors='ignore').strip()
+            if vendor2 and len(vendor2) >= 3:
+                if not all(c in '@\x00 ' for c in vendor2):
+                    return vendor2
+            
+            return
+    except:
+        return
 
 
 def get_cpuid_features() -> dict:

@@ -41,16 +41,7 @@ class CPUIDVendorDetector(BaseDetector):
                 error="CPU platform module not available"
             )
         
-        #Check 1: Checking for leaf 0 (basic CPU vendor)
-        result = self._check_leaf(base, 0)
-        if result['detected']:
-            return TechniqueResult(
-                name=self.name,
-                detected=True,
-                details=result['details']
-            )
-        
-        #Check 2: Checking for leaf 0x40000000 (hypervisor vendor - standard)
+        #Check 1: Checking for leaf 0x40000000 (hypervisor vendor - standard)
         result = self._check_leaf(base, 0x40000000)
         if result['detected']:
             return TechniqueResult(
@@ -59,7 +50,7 @@ class CPUIDVendorDetector(BaseDetector):
                 details=result['details']
             )
         
-        #Check 3: Checking for leaf 0x40000100 (hypervisor vendor - extended)
+        #Check 2: Checking for leaf 0x40000100 (hypervisor vendor - extended)
         result = self._check_leaf(base, 0x40000100)
         if result['detected']:
             return TechniqueResult(

@@ -12,15 +12,15 @@ from ..detectors.hardware.network.mac_address import MACAddressDetector
 from ..detectors.sandbox.virtual_registry import VirtualRegistryDetector
 
 TIER_MAPPING = {
-            "CPUID Hypervisor Bit": "CRITICAL",
-            "CPUID Vendor String": "CRITICAL",
+            "Firmware Table Scan": "CRITICAL",
             "Virtual Registry Detection": "CRITICAL", 
             
-            "Firmware Table Scan": "HIGH",
             "PCI Device Detection": "HIGH",
             "Kernel Object Detection": "HIGH",
+            "CPUID Hypervisor Bit": "HIGH",
+            "CPUID Vendor String": "HIGH", # Not very consistent
             
-            "MAC Address Check": "LOW"
+            "MAC Address Check": "LOW",
         }
 
 
@@ -90,32 +90,32 @@ class DetectionEngine:
             
             # Check for Sandbox specifically (Special Case)
             is_sandbox = any(t.name == "Virtual Registry Detection" and t.detected for t in result.techniques)
-            
-            if is_sandbox:
-                result.reason = "Sandbox Isolation Detected (Critical)"
-            elif high_detection and low_detection:
-                result.reason = "Standard Virtual Machine (No Evasion)"
-            elif high_detection and not low_detection:
-                result.reason = "VM Detected (Lazy Evasion: MAC Spoofed)"
-            elif not high_detection and not low_detection:
-                result.reason = "High-Sophistication Evasion (Hidden Firmware and MAC)"
-            else:
-                result.reason = "Virtual Machine Detected (CPU Level)"
 
-        elif high_detection:
+            if is_sandbox:
+                result.reason = "Sandbox environment detected (Critical isolation)"
+            elif high_detection and low_detection:
+                result.reason = "Virtual machine detected (default configuration - no hardening)"
+            elif high_detection and not low_detection:
+                result.reason = "Virtual machine detected (basic hardening - MAC spoofed)"
+            elif not high_detection and low_detection:
+                result.reason = "Virtual machine detected (firmware exposed only)"
+            else:
+                result.reason = "Virtual machine detected (firmware-level indicators)"
+        
+        elif high_detection >= 2:
             result.verdict = VERDICT_BLOCK
             if low_detection:
-                result.reason = "Hardened VM Detected (CPU Hidden)"
+                result.reason = "Virtual machine detected (moderate hardening - firmware hidden)"
             else:
-                result.reason = "Elite Evasion Attempt (CPU & MAC Hidden, Firmware Exposed)"
-
-        elif low_detection:
-            # The False Positive Case
+                result.reason = "Virtual machine detected (advanced hardening - firmware and MAC hidden)"
+        
+        elif high_detection < 2 or low_detection:
             result.verdict = VERDICT_FLAG
-            result.reason = "Suspicious Environment (Manual Review)"
-
+            result.reason = "Suspicious indicators detected (possible false positive - manual review required)"
+        
         else:
             result.verdict = VERDICT_CLEAN
             result.reason = "System appears clean"
+
 
         
